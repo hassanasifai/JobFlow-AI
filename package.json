@@ -1,8 +1,11 @@
 {
-  "name": "career-ops",
+  "name": "jobflow-ai",
   "version": "1.0.0",
-  "description": "AI-powered job search pipeline built on Claude Code",
+  "description": "JobFlow AI — multi-source job-discovery, AI-driven evaluation, tailored CV generation, and an end-to-end dashboard. Forked and substantially extended from santifer/career-ops.",
   "scripts": {
+    "test": "node --test \"tests/*.mjs\" web-server.test.mjs",
+    "test:dashboard": "cd dashboard-web && npm test",
+    "test:all": "npm test && npm run test:dashboard",
     "doctor": "node doctor.mjs",
     "verify": "node verify-pipeline.mjs",
     "normalize": "node normalize-statuses.mjs",
@@ -15,7 +18,17 @@
     "rollback": "node update-system.mjs rollback",
     "liveness": "node check-liveness.mjs",
     "scan": "node scan.mjs",
-    "gemini:eval": "node gemini-eval.mjs"
+    "scan:v2": "node scan-v2.mjs",
+    "scan:v2:list": "node scan-v2.mjs --list-sources",
+    "scan:v2:dry": "node scan-v2.mjs --dry-run",
+    "gemini:eval": "node gemini-eval.mjs",
+    "web": "node web-server.mjs",
+    "web:test": "node --test web-server.test.mjs",
+    "dashboard:install": "cd dashboard-web && npm install",
+    "dashboard:dev": "cd dashboard-web && npm run dev",
+    "dashboard:build": "cd dashboard-web && npm run build",
+    "dashboard:start": "cd dashboard-web && npm run start",
+    "dashboard:build:export": "node -e \"process.env.CAREER_OPS_DASHBOARD_EXPORT='1';require('child_process').execSync('npm run build',{cwd:'dashboard-web',stdio:'inherit',env:process.env})\""
   },
   "keywords": [
     "ai",
@@ -34,6 +47,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "dotenv": "^16.4.5",
+    "fast-xml-parser": "^4.5.6",
     "js-yaml": "^4.1.1",
     "playwright": "^1.58.1"
   }

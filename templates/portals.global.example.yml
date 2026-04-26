@@ -1,0 +1,229 @@
+# Global zero-cost job discovery example for Career-Ops.
+# Copy sections into portals.yml and customize the company slugs/keywords.
+
+title_filter:
+  positive:
+    - software
+    - developer
+    - engineer
+    - frontend
+    - backend
+    - full stack
+    - fullstack
+    - react
+    - next.js
+    - node
+    - javascript
+    - typescript
+    - python
+    - django
+    - fastapi
+    - devops
+    - cloud
+    - ai
+    - machine learning
+    - data
+    - qa
+    - tester
+    - automation
+    - cybersecurity
+    - security
+    - soc
+    - analyst
+    - product
+    - project manager
+  negative:
+    - nurse
+    - doctor
+    - driver
+    - warehouse
+    - teacher
+    - accountant
+    - sales only
+    - call center
+
+job_discovery:
+  enabled: true
+  dry_run_default: false
+  max_concurrency: 5
+  request_timeout_ms: 20000
+  retry_count: 2
+  retry_delay_ms: 1000
+  user_agent: "career-ops-personal-job-scanner/1.0"
+
+  regions:
+    include:
+      - pakistan
+      - gcc
+      - uae
+      - saudi_arabia
+      - ireland
+      - poland
+      - usa
+      - uk
+      - europe
+      - remote_worldwide
+
+  title_filter:
+    include:
+      - software
+      - developer
+      - engineer
+      - frontend
+      - backend
+      - full stack
+      - fullstack
+      - react
+      - next.js
+      - node
+      - javascript
+      - typescript
+      - python
+      - django
+      - fastapi
+      - devops
+      - cloud
+      - ai
+      - machine learning
+      - data
+      - qa
+      - tester
+      - automation
+      - cybersecurity
+      - security
+      - soc
+      - analyst
+      - product
+      - project manager
+    exclude:
+      - nurse
+      - doctor
+      - driver
+      - warehouse
+      - teacher
+      - accountant
+      - sales only
+      - call center
+
+  location_filter:
+    include:
+      - Pakistan
+      - Lahore
+      - Karachi
+      - Islamabad
+      - Rawalpindi
+      - UAE
+      - United Arab Emirates
+      - Dubai
+      - Abu Dhabi
+      - Saudi Arabia
+      - KSA
+      - Riyadh
+      - Jeddah
+      - Qatar
+      - Doha
+      - Kuwait
+      - Oman
+      - Bahrain
+      - Ireland
+      - Dublin
+      - Poland
+      - Warsaw
+      - Krakow
+      - USA
+      - United States
+      - UK
+      - United Kingdom
+      - London
+      - Europe
+      - EMEA
+      - MENA
+      - GCC
+      - Gulf
+      - Remote
+      - Worldwide
+      - Global
+      - Anywhere
+    exclude:
+      - US only
+      - United States only
+      - Canada only
+      - EU only
+      - Europe only
+      - UK only
+      - Requires US work authorization
+      - Security clearance required
+
+  providers:
+    greenhouse:
+      enabled: true
+    lever:
+      enabled: true
+    ashby:
+      enabled: true
+    workable:
+      enabled: true
+    recruitee:
+      enabled: true
+    smartrecruiters:
+      enabled: true
+    remoteok:
+      enabled: true
+      attribution_required: true
+    remotive:
+      enabled: true
+      attribution_required: true
+      max_runs_per_day: 4
+    arbeitnow:
+      enabled: true
+    personio:
+      enabled: true
+    adzuna:
+      enabled: false
+      requires_key: true
+    usajobs:
+      enabled: false
+      requires_key: true
+
+tracked_companies:
+  - name: Example Greenhouse Company
+    enabled: true
+    ats:
+      provider: greenhouse
+      board_token: example
+
+  - name: Example Lever Company
+    enabled: true
+    ats:
+      provider: lever
+      account: example
+
+  - name: Example Ashby Company
+    enabled: true
+    ats:
+      provider: ashby
+      board: Example
+
+  - name: Example Workable Company
+    enabled: true
+    ats:
+      provider: workable
+      subdomain: example
+
+  - name: Example Recruitee Company
+    enabled: true
+    ats:
+      provider: recruitee
+      company_id: example
+
+  - name: Example SmartRecruiters Company
+    enabled: true
+    ats:
+      provider: smartrecruiters
+      company_identifier: example
+
+  - name: Example Personio Company
+    enabled: true
+    ats:
+      provider: personio
+      company_slug: example

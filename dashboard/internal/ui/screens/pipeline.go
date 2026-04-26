@@ -324,7 +324,9 @@ func (m PipelineModel) handleKey(msg tea.KeyMsg) (PipelineModel, tea.Cmd) {
 	case "c":
 		if len(m.filtered) > 0 {
 			m.statusPicker = true
-			m.statusCursor = 0
+			if app, ok := m.CurrentApp(); ok {
+				m.statusCursor = statusOptionIndex(app.Status)
+			}
 		}
 
 	case "g":
@@ -537,6 +539,7 @@ func (m PipelineModel) View() string {
 	tabs := m.renderTabs()
 	metricsBar := m.renderMetrics()
 	sortBar := m.renderSortBar()
+	columnHeader := m.renderColumnHeader()
 	body := m.renderBody()
 	preview := m.renderPreview()
 	help := m.renderHelp()
@@ -549,7 +552,7 @@ func (m PipelineModel) View() string {
 
 	// Calculate available height for body
 	previewLines := strings.Count(preview, "\n") + 1
-	availHeight := m.height - 7 - previewLines // header + tabs(2) + metrics + sortbar + help + preview
+	availHeight := m.height - 8 - previewLines // header + tabs(2) + metrics + sortbar + columns + help + preview
 	if availHeight < 3 {
 		availHeight = 3
 	}
@@ -568,6 +571,7 @@ func (m PipelineModel) View() string {
 		tabs,
 		metricsBar,
 		sortBar,
+		columnHeader,
 		body,
 		preview,
 		help,
@@ -575,24 +579,18 @@ func (m PipelineModel) View() string {
 }
 
 func (m PipelineModel) renderHeader() string {
-	style := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(m.theme.Text).
-		Background(m.theme.Surface).
-		Width(m.width).
-		Padding(0, 2)
-
-	right := lipgloss.NewStyle().Foreground(m.theme.Subtext)
+	rightStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Blue)
 	avg := fmt.Sprintf("%.1f", m.metrics.AvgScore)
-	info := right.Render(fmt.Sprintf("%d offers | Avg %s/5", m.metrics.Total, avg))
+	content := renderSplitLine(
+		"CAREER PIPELINE",
+		fmt.Sprintf("%d offers | Avg %s/5", m.metrics.Total, avg),
+		max(0, m.width-4),
+		titleStyle,
+		rightStyle,
+	)
 
-	title := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Blue).Render("CAREER PIPELINE")
-	gap := m.width - lipgloss.Width(title) - lipgloss.Width(info) - 4
-	if gap < 1 {
-		gap = 1
-	}
-
-	return style.Render(title + strings.Repeat(" ", gap) + info)
+	return "  " + content + "  "
 }
 
 func (m PipelineModel) renderTabs() string {
@@ -602,7 +600,7 @@ func (m PipelineModel) renderTabs() string {
 	for i, tab := range pipelineTabs {
 		// Count items for this tab
 		count := m.countForFilter(tab.filter)
-		label := fmt.Sprintf(" %s (%d) ", tab.label, count)
+		label := fmt.Sprintf(" %s (%d) ", m.tabLabel(tab), count)
 
 		if i == m.activeTab {
 			style := lipgloss.NewStyle().
@@ -623,8 +621,26 @@ func (m PipelineModel) renderTabs() string {
 	row := lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
 	underline := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render(strings.Join(underParts, ""))
 
-	padStyle := lipgloss.NewStyle().Padding(0, 1)
-	return padStyle.Render(row) + "\n" + padStyle.Render(underline)
+	return " " + fitStyledLine(row, max(0, m.width-2)) + " \n" +
+		" " + fitStyledLine(underline, max(0, m.width-2)) + " "
+}
+
+func (m PipelineModel) tabLabel(tab pipelineTab) string {
+	if m.width >= 90 {
+		return tab.label
+	}
+	switch tab.filter {
+	case filterEvaluated:
+		return "EVAL"
+	case filterApplied:
+		return "APP"
+	case filterInterview:
+		return "INT"
+	case filterTop:
+		return "TOP"
+	default:
+		return tab.label
+	}
 }
 
 func (m PipelineModel) countForFilter(filter string) int {
@@ -648,11 +664,6 @@ func (m PipelineModel) countForFilter(filter string) int {
 }
 
 func (m PipelineModel) renderMetrics() string {
-	style := lipgloss.NewStyle().
-		Background(m.theme.Surface).
-		Width(m.width).
-		Padding(0, 2)
-
 	var parts []string
 	statusColors := m.statusColorMap()
 
@@ -666,20 +677,51 @@ func (m PipelineModel) renderMetrics() string {
 		parts = append(parts, s.Render(fmt.Sprintf("%s:%d", statusLabel(status), count)))
 	}
 
-	return style.Render(strings.Join(parts, "  "))
+	innerWidth := max(0, m.width-4)
+	content := strings.Join(parts, "  ")
+	if lipgloss.Width(content) > innerWidth {
+		content = lipgloss.NewStyle().Foreground(m.theme.Subtext).Render(fmt.Sprintf(
+			"Active:%d  PDF:%d  Top:%.1f",
+			m.metrics.Actionable,
+			m.metrics.WithPDF,
+			m.metrics.TopScore,
+		))
+	}
+
+	return "  " + fitStyledLine(content, innerWidth) + "  "
 }
 
 func (m PipelineModel) renderSortBar() string {
 	style := lipgloss.NewStyle().
-		Foreground(m.theme.Subtext).
-		Width(m.width).
-		Padding(0, 2)
+		Foreground(m.theme.Subtext)
 
 	sortLabel := fmt.Sprintf("[Sort: %s]", m.sortMode)
 	viewLabel := fmt.Sprintf("[View: %s]", m.viewMode)
 	count := fmt.Sprintf("%d shown", len(m.filtered))
 
-	return style.Render(fmt.Sprintf("%s  %s  %s", sortLabel, viewLabel, count))
+	content := fitPlainLine(fmt.Sprintf("%s  %s  %s", sortLabel, viewLabel, count), max(0, m.width-4))
+
+	return "  " + style.Render(content) + "  "
+}
+
+func (m PipelineModel) renderColumnHeader() string {
+	scoreW, dateW, companyW, roleW, statusW, compW := m.columnWidths()
+	headerStyle := lipgloss.NewStyle().Foreground(m.theme.Overlay).Bold(true)
+
+	parts := []string{
+		headerStyle.Width(scoreW).Render("Score"),
+		headerStyle.Width(dateW).Render("Date"),
+		headerStyle.Width(companyW).Render("Company"),
+		headerStyle.Width(roleW).Render("Role"),
+		headerStyle.Width(statusW).Render("Status"),
+	}
+	if compW > 0 {
+		parts = append(parts, headerStyle.Width(compW).Render("Comp"))
+	}
+
+	return lipgloss.NewStyle().Padding(0, 2).Render(
+		fitStyledLine(" "+strings.Join(parts, " "), max(0, m.width-4)),
+	)
 }
 
 func (m PipelineModel) renderBody() string {
@@ -703,10 +745,11 @@ func (m PipelineModel) renderBody() string {
 			headerStyle := lipgloss.NewStyle().
 				Bold(true).
 				Foreground(m.theme.Subtext)
+			groupText := fmt.Sprintf("%s (%d)", strings.ToUpper(statusLabel(norm)), count)
+			ruleWidth := max(0, m.width-8-lipgloss.Width(groupText))
+			groupLine := fitPlainLine(fmt.Sprintf("-- %s %s", groupText, strings.Repeat("-", ruleWidth)), max(0, m.width-4))
 			lines = append(lines, padStyle.Render(
-				headerStyle.Render(fmt.Sprintf("── %s (%d) %s",
-					strings.ToUpper(statusLabel(norm)), count,
-					strings.Repeat("─", max(0, m.width-30-len(statusLabel(norm)))))),
+				headerStyle.Render(groupLine),
 			))
 			prevStatus = norm
 		}
@@ -722,20 +765,10 @@ func (m PipelineModel) renderBody() string {
 func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool) string {
 	padStyle := lipgloss.NewStyle().Padding(0, 2)
 
-	// Column widths
-	scoreW := 5 // "4.5  "
-	dateW := 10
-	companyW := 16
-	statusW := 12
-	compW := 14
-	// Role gets remaining space
-	roleW := m.width - scoreW - dateW - companyW - statusW - compW - 12
-	if roleW < 15 {
-		roleW = 15
-	}
+	scoreW, dateW, companyW, roleW, statusW, compW := m.columnWidths()
 
 	// Score with color
-	scoreStyle := m.scoreStyle(app.Score)
+	scoreStyle := m.scoreStyle(app.Score).Width(scoreW)
 	score := scoreStyle.Render(fmt.Sprintf("%.1f", app.Score))
 
 	// Company (truncate)
@@ -759,22 +792,27 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 	statusStyle := lipgloss.NewStyle().Foreground(statusColor).Width(statusW)
 	statusText := statusStyle.Render(statusLabel(norm))
 
-	// Comp from report cache -- fixed column
 	compText := ""
-	if summary, ok := m.reportCache[app.ReportPath]; ok && summary.comp != "" {
-		comp := truncateRunes(summary.comp, compW-1)
-		compStyle := lipgloss.NewStyle().Foreground(m.theme.Yellow)
-		compText = compStyle.Render(comp)
+	if compW > 0 {
+		// Comp from report cache -- fixed column
+		if summary, ok := m.reportCache[app.ReportPath]; ok && summary.comp != "" {
+			comp := truncateRunes(summary.comp, compW-1)
+			compStyle := lipgloss.NewStyle().Foreground(m.theme.Yellow)
+			compText = compStyle.Render(comp)
+		}
 	}
 
-	line := fmt.Sprintf(" %s %s %s %s %s %s",
+	parts := []string{
 		score,
 		dateStyle.Render(truncateRunes(dateText, dateW)),
 		companyStyle.Render(company),
 		roleStyle.Render(role),
 		statusText,
-		compText,
-	)
+	}
+	if compW > 0 {
+		parts = append(parts, compText)
+	}
+	line := " " + strings.Join(parts, " ")
 
 	if selected {
 		selStyle := lipgloss.NewStyle().
@@ -783,6 +821,24 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 		return padStyle.Render(selStyle.Render(line))
 	}
 	return padStyle.Render(line)
+}
+
+func (m PipelineModel) columnWidths() (scoreW, dateW, companyW, roleW, statusW, compW int) {
+	scoreW = 5
+	dateW = 10
+	statusW = 12
+	companyW = 16
+	compW = 14
+	if m.width < 84 {
+		companyW = 12
+		compW = 0
+	}
+	fixed := scoreW + dateW + companyW + statusW + compW + 12
+	roleW = m.width - fixed
+	if roleW < 12 {
+		roleW = 12
+	}
+	return
 }
 
 func (m PipelineModel) renderPreview() string {
@@ -804,20 +860,16 @@ func (m PipelineModel) renderPreview() string {
 	// Check report cache
 	if summary, ok := m.reportCache[app.ReportPath]; ok {
 		if summary.archetype != "" {
-			lines = append(lines, padStyle.Render(
-				labelStyle.Render("Arquetipo: ")+valueStyle.Render(summary.archetype)))
+			lines = append(lines, m.renderPreviewField("Archetype", summary.archetype, labelStyle, valueStyle)...)
 		}
 		if summary.tldr != "" {
-			lines = append(lines, padStyle.Render(
-				labelStyle.Render("TL;DR: ")+valueStyle.Render(summary.tldr)))
+			lines = append(lines, m.renderPreviewField("TL;DR", summary.tldr, labelStyle, valueStyle)...)
 		}
 		if summary.comp != "" {
-			lines = append(lines, padStyle.Render(
-				labelStyle.Render("Comp: ")+valueStyle.Render(summary.comp)))
+			lines = append(lines, m.renderPreviewField("Comp", summary.comp, labelStyle, valueStyle)...)
 		}
 		if summary.remote != "" {
-			lines = append(lines, padStyle.Render(
-				labelStyle.Render("Remote: ")+valueStyle.Render(summary.remote)))
+			lines = append(lines, m.renderPreviewField("Remote", summary.remote, labelStyle, valueStyle)...)
 		}
 	} else if app.Notes != "" {
 		// Fallback: show notes
@@ -830,42 +882,80 @@ func (m PipelineModel) renderPreview() string {
 	return strings.Join(lines, "\n")
 }
 
-func (m PipelineModel) renderHelp() string {
-	style := lipgloss.NewStyle().
-		Foreground(m.theme.Subtext).
-		Background(m.theme.Surface).
-		Width(m.width).
-		Padding(0, 1)
+func (m PipelineModel) renderPreviewField(label, value string, labelStyle, valueStyle lipgloss.Style) []string {
+	padStyle := lipgloss.NewStyle().Padding(0, 2)
+	innerWidth := m.width - 4
+	if innerWidth < 20 {
+		innerWidth = 20
+	}
 
+	prefix := label + ": "
+	prefixWidth := lipgloss.Width(prefix)
+	firstWidth := innerWidth - prefixWidth
+	if firstWidth < 10 {
+		firstWidth = innerWidth
+		prefix = label + "\n"
+		prefixWidth = 0
+	}
+
+	wrapped := wrapWords(value, firstWidth)
+	if len(wrapped) == 0 {
+		wrapped = []string{""}
+	}
+
+	lines := make([]string, 0, len(wrapped))
+	lines = append(lines, padStyle.Render(labelStyle.Render(prefix)+valueStyle.Render(wrapped[0])))
+
+	continuationWidth := innerWidth - prefixWidth
+	if continuationWidth < 10 {
+		continuationWidth = innerWidth
+	}
+	for _, line := range wrapWords(strings.Join(wrapped[1:], " "), continuationWidth) {
+		indent := strings.Repeat(" ", prefixWidth)
+		lines = append(lines, padStyle.Render(valueStyle.Render(indent+line)))
+	}
+
+	return lines
+}
+
+func (m PipelineModel) renderHelp() string {
 	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Text)
 	descStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
 
 	if m.statusPicker {
-		return style.Render(
-			keyStyle.Render("↑↓/jk") + descStyle.Render(" navigate  ") +
-				keyStyle.Render("Enter") + descStyle.Render(" confirm  ") +
-				keyStyle.Render("Esc") + descStyle.Render(" cancel"))
+		return fitStyledLine(
+			keyStyle.Render("↑↓/jk")+descStyle.Render(" navigate  ")+
+				keyStyle.Render("Enter")+descStyle.Render(" confirm  ")+
+				keyStyle.Render("Esc")+descStyle.Render(" cancel"),
+			m.width,
+		)
 	}
 
 	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("career-ops by santifer.io")
 
-	keys := keyStyle.Render("↑↓/jk") + descStyle.Render(" nav  ") +
-		keyStyle.Render("←→/hl") + descStyle.Render(" tabs  ") +
+	keys := keyStyle.Render("↑↓") + descStyle.Render(" nav  ") +
+		keyStyle.Render("←→") + descStyle.Render(" tabs  ") +
 		keyStyle.Render("s") + descStyle.Render(" sort  ") +
 		keyStyle.Render("r") + descStyle.Render(" refresh  ") +
 		keyStyle.Render("Enter") + descStyle.Render(" report  ") +
-		keyStyle.Render("o") + descStyle.Render(" open URL  ") +
-		keyStyle.Render("c") + descStyle.Render(" change  ") +
-		keyStyle.Render("v") + descStyle.Render(" view  ") +
+		keyStyle.Render("o") + descStyle.Render(" url  ") +
+		keyStyle.Render("c") + descStyle.Render(" status  ") +
 		keyStyle.Render("p") + descStyle.Render(" progress  ") +
 		keyStyle.Render("Esc") + descStyle.Render(" quit")
-
-	gap := m.width - lipgloss.Width(keys) - lipgloss.Width(brand) - 2
-	if gap < 1 {
-		gap = 1
+	if m.width < 90 {
+		keys = keyStyle.Render("↑↓") + descStyle.Render(" nav  ") +
+			keyStyle.Render("←→") + descStyle.Render(" tabs  ") +
+			keyStyle.Render("Enter") + descStyle.Render(" report  ") +
+			keyStyle.Render("c") + descStyle.Render(" status  ") +
+			keyStyle.Render("Esc") + descStyle.Render(" quit")
 	}
 
-	return style.Render(keys + strings.Repeat(" ", gap) + brand)
+	content := keys
+	if lipgloss.Width(keys)+1+lipgloss.Width(brand) <= m.width {
+		content = keys + strings.Repeat(" ", m.width-lipgloss.Width(keys)-lipgloss.Width(brand)) + brand
+	}
+
+	return fitStyledLine(content, m.width)
 }
 
 func (m PipelineModel) overlayStatusPicker(body string) string {
@@ -969,4 +1059,100 @@ func statusLabel(norm string) string {
 	default:
 		return norm
 	}
+}
+
+func statusOptionIndex(status string) int {
+	label := statusLabel(data.NormalizeStatus(status))
+	for i, opt := range statusOptions {
+		if opt == label {
+			return i
+		}
+	}
+	return 0
+}
+
+func renderSplitLine(left, right string, width int, leftStyle, rightStyle lipgloss.Style) string {
+	if width <= 0 {
+		return ""
+	}
+	left = truncateRunes(left, width)
+	rightRoom := width - lipgloss.Width(left) - 1
+	if rightRoom < 0 {
+		rightRoom = 0
+	}
+	right = truncateRunes(right, rightRoom)
+	gap := width - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 1 {
+		gap = 1
+	}
+	return leftStyle.Render(left) + strings.Repeat(" ", gap) + rightStyle.Render(right)
+}
+
+func fitPlainLine(text string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	if lipgloss.Width(text) > width {
+		return truncateRunes(text, width)
+	}
+	return text + strings.Repeat(" ", width-lipgloss.Width(text))
+}
+
+func fitStyledLine(text string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	if lipgloss.Width(text) >= width {
+		return text
+	}
+	return text + strings.Repeat(" ", width-lipgloss.Width(text))
+}
+
+func wrapWords(text string, width int) []string {
+	if width <= 0 {
+		return []string{text}
+	}
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return nil
+	}
+
+	var lines []string
+	current := ""
+	for _, word := range words {
+		if lipgloss.Width(word) > width {
+			if current != "" {
+				lines = append(lines, current)
+				current = ""
+			}
+			for lipgloss.Width(word) > width {
+				runes := []rune(word)
+				cut := len(runes)
+				for cut > 0 && lipgloss.Width(string(runes[:cut])) > width-3 {
+					cut--
+				}
+				if cut <= 0 {
+					cut = 1
+				}
+				lines = append(lines, string(runes[:cut])+"...")
+				word = string(runes[cut:])
+			}
+		}
+		candidate := word
+		if current != "" {
+			candidate = current + " " + word
+		}
+		if lipgloss.Width(candidate) <= width {
+			current = candidate
+			continue
+		}
+		if current != "" {
+			lines = append(lines, current)
+		}
+		current = word
+	}
+	if current != "" {
+		lines = append(lines, current)
+	}
+	return lines
 }

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Career-Ops Web Console</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to main content</a>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#overview" aria-label="Career-Ops Web Console">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 16.5V7.8L12 3l8 4.8v8.7L12 21l-8-4.5Zm3-1.7 5 2.8 5-2.8V9.4l-5-3-5 3v5.4Z"></path></svg>
+          </span>
+          <span>
+            <strong>Career-Ops</strong>
+            <small>Web operations console</small>
+          </span>
+        </a>
+        <nav class="nav-list">
+          <a href="#overview" class="nav-link active">Overview</a>
+          <a href="#setup" class="nav-link">Setup</a>
+          <a href="#config" class="nav-link">Config editor</a>
+          <a href="#applications" class="nav-link">Applications</a>
+          <a href="#pipeline" class="nav-link">Pipeline</a>
+          <a href="#artifacts" class="nav-link">Reports & files</a>
+          <a href="#actions" class="nav-link">Actions</a>
+        </nav>
+        <div class="visual-panel" aria-hidden="true"></div>
+      </aside>
+
+      <main id="workspace" class="workspace">
+        <header class="topbar">
+          <div id="overview">
+            <p class="eyebrow">Local browser app</p>
+            <h1>Career-Ops Web Console</h1>
+          </div>
+          <div class="topbar-actions">
+            <button id="startAllButton" class="secondary-button">Run startup flow</button>
+            <button id="refreshButton" class="icon-button" aria-label="Refresh dashboard">
+              <svg viewBox="0 0 24 24"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2.2a5.8 5.8 0 1 1-1.7-4.1L13 11h8V3l-3.3 3.3Z"></path></svg>
+            </button>
+          </div>
+        </header>
+
+        <section class="status-strip" aria-live="polite" id="systemStatus">
+          Loading your workspace...
+        </section>
+
+        <section class="metric-grid" aria-label="Career metrics">
+          <article class="metric">
+            <span>Total applications</span>
+            <strong id="metricApplications">0</strong>
+          </article>
+          <article class="metric">
+            <span>Pending URLs</span>
+            <strong id="metricPipeline">0</strong>
+          </article>
+          <article class="metric">
+            <span>Average score</span>
+            <strong id="metricScore">0.0</strong>
+          </article>
+          <article class="metric">
+            <span>PDFs ready</span>
+            <strong id="metricPdfs">0</strong>
+          </article>
+          <article class="metric">
+            <span>Reports generated</span>
+            <strong id="metricReports">0</strong>
+          </article>
+          <article class="metric">
+            <span>Pending pipeline items</span>
+            <strong id="metricPendingPipeline">0</strong>
+          </article>
+        </section>
+
+        <section id="setup" class="section-block">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Start here</p>
+              <h2>Setup checklist</h2>
+            </div>
+            <button class="secondary-button" data-command="doctor">Run setup check</button>
+          </div>
+          <div id="setupList" class="setup-list"></div>
+        </section>
+
+        <section id="config" class="section-block">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Configuration</p>
+              <h2>Edit project files</h2>
+            </div>
+            <button id="saveConfigButton" class="secondary-button">Save file</button>
+          </div>
+          <div class="config-toolbar">
+            <label>
+              <span>File</span>
+              <select id="configFileSelect"></select>
+            </label>
+            <button id="reloadConfigButton" class="secondary-button">Reload</button>
+          </div>
+          <textarea id="configEditor" class="config-editor" spellcheck="false" aria-label="Configuration editor"></textarea>
+        </section>
+
+        <section id="applications" class="section-block">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Tracker</p>
+              <h2>Applications</h2>
+            </div>
+            <label class="search-field">
+              <span>Search</span>
+              <input id="applicationSearch" type="search" placeholder="Company, role, status">
+            </label>
+          </div>
+          <div id="applicationsTable" class="table-shell"></div>
+        </section>
+
+        <section id="pipeline" class="section-block">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Inbox</p>
+              <h2>Pipeline management</h2>
+            </div>
+            <button class="secondary-button" data-command="scan">Scan portals</button>
+          </div>
+          <form id="pipelineAddForm" class="pipeline-add" novalidate>
+            <label>
+              <span>Job URL</span>
+              <input id="pipelineUrl" type="url" required placeholder="https://jobs.example.com/role">
+            </label>
+            <label>
+              <span>Company</span>
+              <input id="pipelineCompany" type="text" placeholder="Company name">
+            </label>
+            <label>
+              <span>Role</span>
+              <input id="pipelineRole" type="text" placeholder="Role title">
+            </label>
+            <button class="secondary-button" type="submit">Add to pipeline</button>
+          </form>
+          <div class="pipeline-columns">
+            <div>
+              <h3>Pending</h3>
+              <div id="pipelinePending" class="pipeline-list"></div>
+            </div>
+            <div>
+              <h3>Processed</h3>
+              <div id="pipelineProcessed" class="pipeline-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="artifacts" class="section-block">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Artifacts</p>
+              <h2>Reports and generated files</h2>
+            </div>
+          </div>
+          <div class="artifact-columns">
+            <div>
+              <h3>Reports</h3>
+              <div id="reportsList" class="pipeline-list"></div>
+            </div>
+            <div>
+              <h3>Output PDFs</h3>
+              <div id="outputsList" class="pipeline-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="actions" class="section-block action-grid">
+          <div id="actionTiles" class="action-grid-inner"></div>
+          <div class="action-form">
+            <h3>URL liveness check</h3>
+            <form id="livenessForm" novalidate>
+              <textarea id="livenessUrls" placeholder="One URL per line" spellcheck="false"></textarea>
+              <button class="secondary-button" type="submit">Run liveness</button>
+            </form>
+          </div>
+          <div class="action-form">
+            <h3>Gemini quick evaluation</h3>
+            <form id="geminiForm" novalidate>
+              <textarea id="geminiPrompt" placeholder="Paste a job description to evaluate..." spellcheck="false"></textarea>
+              <button class="secondary-button" type="submit">Run Gemini eval</button>
+            </form>
+          </div>
+        </section>
+      </main>
+
+      <aside class="inspector" aria-label="Details panel">
+        <div class="inspector-header">
+          <p class="eyebrow">Details</p>
+          <h2 id="inspectorTitle">No item selected</h2>
+        </div>
+        <pre id="commandOutput" class="command-output">Select an item or run an action.</pre>
+      </aside>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

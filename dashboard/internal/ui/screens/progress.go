@@ -120,29 +120,22 @@ func (m ProgressModel) View() string {
 }
 
 func (m ProgressModel) renderHeader() string {
-	style := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(m.theme.Text).
-		Background(m.theme.Surface).
-		Width(m.width).
-		Padding(0, 2)
-
-	title := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Mauve).Render("SEARCH PROGRESS")
-
-	right := lipgloss.NewStyle().Foreground(m.theme.Subtext)
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Mauve)
+	rightStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
 	total := len(m.metrics.FunnelStages)
 	totalCount := 0
 	if total > 0 {
 		totalCount = m.metrics.FunnelStages[0].Count
 	}
-	info := right.Render(fmt.Sprintf("%d evaluated | %.1f avg score", totalCount, m.metrics.AvgScore))
+	content := renderSplitLine(
+		"SEARCH PROGRESS",
+		fmt.Sprintf("%d evaluated | %.1f avg score", totalCount, m.metrics.AvgScore),
+		max(0, m.width-4),
+		titleStyle,
+		rightStyle,
+	)
 
-	gap := m.width - lipgloss.Width(title) - lipgloss.Width(info) - 4
-	if gap < 1 {
-		gap = 1
-	}
-
-	return style.Render(title + strings.Repeat(" ", gap) + info)
+	return "  " + content + "  "
 }
 
 func (m ProgressModel) renderFunnel() string {
@@ -295,16 +288,25 @@ func (m ProgressModel) renderRates() string {
 
 	sep := sepStyle.Render("  |  ")
 
-	rates := labelStyle.Render("Response Rate: ") +
-		valueStyle.Foreground(responseColor).Render(fmt.Sprintf("%.1f%%", m.metrics.ResponseRate)) +
-		sep +
-		labelStyle.Render("Interview Rate: ") +
-		valueStyle.Foreground(interviewColor).Render(fmt.Sprintf("%.1f%%", m.metrics.InterviewRate)) +
-		sep +
-		labelStyle.Render("Offer Rate: ") +
-		valueStyle.Foreground(offerColor).Render(fmt.Sprintf("%.1f%%", m.metrics.OfferRate))
+	if m.width < 82 {
+		lines = append(lines, padStyle.Render(
+			labelStyle.Render("Response: ")+valueStyle.Foreground(responseColor).Render(fmt.Sprintf("%.1f%%", m.metrics.ResponseRate))))
+		lines = append(lines, padStyle.Render(
+			labelStyle.Render("Interview: ")+valueStyle.Foreground(interviewColor).Render(fmt.Sprintf("%.1f%%", m.metrics.InterviewRate))))
+		lines = append(lines, padStyle.Render(
+			labelStyle.Render("Offer: ")+valueStyle.Foreground(offerColor).Render(fmt.Sprintf("%.1f%%", m.metrics.OfferRate))))
+	} else {
+		rates := labelStyle.Render("Response Rate: ") +
+			valueStyle.Foreground(responseColor).Render(fmt.Sprintf("%.1f%%", m.metrics.ResponseRate)) +
+			sep +
+			labelStyle.Render("Interview Rate: ") +
+			valueStyle.Foreground(interviewColor).Render(fmt.Sprintf("%.1f%%", m.metrics.InterviewRate)) +
+			sep +
+			labelStyle.Render("Offer Rate: ") +
+			valueStyle.Foreground(offerColor).Render(fmt.Sprintf("%.1f%%", m.metrics.OfferRate))
 
-	lines = append(lines, padStyle.Render(rates))
+		lines = append(lines, padStyle.Render(rates))
+	}
 
 	// Active summary
 	dimStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
@@ -374,12 +376,6 @@ func (m ProgressModel) renderWeeklyActivity() string {
 }
 
 func (m ProgressModel) renderHelp() string {
-	style := lipgloss.NewStyle().
-		Foreground(m.theme.Subtext).
-		Background(m.theme.Surface).
-		Width(m.width).
-		Padding(0, 1)
-
 	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Text)
 	descStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
 
@@ -389,12 +385,12 @@ func (m ProgressModel) renderHelp() string {
 		keyStyle.Render("PgUp/Dn") + descStyle.Render(" page  ") +
 		keyStyle.Render("Esc") + descStyle.Render(" back")
 
-	gap := m.width - lipgloss.Width(keys) - lipgloss.Width(brand) - 2
-	if gap < 1 {
-		gap = 1
+	content := keys
+	if lipgloss.Width(keys)+1+lipgloss.Width(brand) <= m.width {
+		content = keys + strings.Repeat(" ", m.width-lipgloss.Width(keys)-lipgloss.Width(brand)) + brand
 	}
 
-	return style.Render(keys + strings.Repeat(" ", gap) + brand)
+	return fitStyledLine(content, m.width)
 }
 
 // rateColor returns a color based on the rate value.

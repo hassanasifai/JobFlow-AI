@@ -894,3 +894,409 @@ tracked_companies:
     scan_query: '"Maxim AI" OR "getmaxim" careers "engineer" OR "product"'
     notes: "AI evaluation and observability platform. Bangalore-based, mostly on-site."
     enabled: true
+
+# ════════════════════════════════════════════════════════════════════
+# SCAN-V2 — multi-source pluggable adapters (used by `npm run scan:v2`)
+# ════════════════════════════════════════════════════════════════════
+#
+# Every adapter under `scanners/{api,rss,sitemap,ats,jsonld,scrape}/*.mjs`
+# can be configured here. Each block is `enabled: true|false` plus per-adapter
+# fields. Run `node scan-v2.mjs --list-sources` for the full live registry, or
+# `node scan-v2.mjs --list-options <id>` for one adapter's preset values and
+# schema. The future SaaS frontend will write to this same shape.
+#
+# IMPORTANT: nothing here is hardcoded by role/region/country. Pass any string
+# you want into `queries`, `locations`, `categories`, etc. — adapters accept
+# free-text input (presets are only convenience defaults shown by the UI).
+#
+# Title filtering is shared with the legacy scanner above (title_filter.positive
+# / title_filter.negative).
+
+sources:
+
+  # ── No-auth APIs (worldwide remote) ───────────────────────────────
+  remotive:
+    enabled: true
+    queries: []          # e.g. ["python","ai engineer"] — empty = all
+    categories: []       # see --list-options remotive
+    companies: []
+    limit: 100
+
+  remoteok:
+    enabled: true
+    queries: []
+    tags: []
+
+  arbeitnow:
+    enabled: true
+    queries: []
+    tags: []
+    max_pages: 5
+
+  jobicy:
+    enabled: true
+    queries: []
+    geo: []              # e.g. ["middle-east","apac","europe"]
+    industries: []
+    tags: []
+    count: 50
+
+  working-nomads:
+    enabled: true
+    queries: []
+    categories: []
+    tags: []
+
+  himalayas:
+    enabled: true
+    queries: []
+    categories: []       # ~16 known categories — see presets
+    seniority: []        # entry/mid/senior/lead/principal/manager/director
+    max_pages: 10
+    page_size: 50
+
+  themuse:
+    enabled: true
+    api_key: "${THE_MUSE_KEY}"   # optional; raises rate limit
+    queries: []
+    categories: []
+    levels: []
+    locations: []         # e.g. ["Flexible / Remote","Dubai, United Arab Emirates"]
+    max_pages: 5
+
+  hn-whoishiring:
+    enabled: true
+    queries: ["remote"]   # at least one keyword required (Algolia search)
+    max_threads: 1
+    hits_per_page: 100
+
+  # ── Keyed APIs (Phase-2 — set keys in .env, then enabled: true) ───
+  careerjet:
+    enabled: false
+    affiliate_id: "${CAREERJET_AFFILIATE}"
+    queries: []
+    locations: []         # e.g. ["Pakistan","Dubai","Riyadh"]
+    locales: ["en_PK","en_AE","en_SA","en_QA","en_OM","en_BH","en_KW","en_GB"]
+    max_pages: 10
+
+  jooble:
+    enabled: false
+    api_key: "${JOOBLE_KEY}"
+    queries: []
+    locations: []
+    countries: ["pk","ae","sa","qa","om","bh","kw"]
+    max_pages: 5
+
+  adzuna:
+    enabled: false
+    app_id: "${ADZUNA_APP_ID}"
+    app_key: "${ADZUNA_APP_KEY}"
+    queries: []
+    locations: []
+    countries: ["gb","us","de","in","ca","au"]   # PK/Gulf NOT supported by Adzuna
+    max_pages: 3
+
+  usajobs:
+    enabled: false
+    user_email: "${USAJOBS_USER_EMAIL}"
+    api_key: "${USAJOBS_API_KEY}"
+    queries: []
+    locations: []
+    remote_only: false
+    max_pages: 3
+
+  findwork:
+    enabled: false
+    api_token: "${FINDWORK_TOKEN}"
+    queries: []
+    locations: []
+    remote_only: true
+    max_pages: 5
+
+  web3career:
+    enabled: false
+    api_token: "public"
+    queries: []
+    tags: []
+    max_pages: 5
+
+  jsearch:
+    enabled: false        # only 200 req/month on free tier
+    rapidapi_key: "${RAPIDAPI_KEY}"
+    queries: []
+    locations: []
+    countries: ["us","ae","sa","pk"]
+    remote_only: false
+    employment_types: []
+    max_pages: 1
+
+  # ── RSS feeds ─────────────────────────────────────────────────────
+  weworkremotely:
+    enabled: true
+    categories: []        # empty = all 11 known categories
+    queries: []
+
+  hn-jobstories:
+    enabled: true
+    queries: []           # client-side title filter; empty = all
+    max_items: 30         # HN typically has ~30 active job postings
+
+  landing-jobs:
+    enabled: true
+    queries: []
+    technologies: []      # filter by stack: ["javascript","python","go",…]
+    max_pages: 3
+    remote_only: false
+
+  getonbrd:
+    enabled: true
+    categories: ["programming", "devops-sysadmin", "data-science-analytics"]
+    queries: []
+    max_pages: 2
+    remote_only: false
+
+  python-jobs:
+    enabled: true
+    queries: []           # filter to "Senior", "Remote", etc. as needed
+
+  jobspresso:
+    # NOTE: Jobspresso RSS feed is currently empty (no <item> entries).
+    # Adapter is hard-disabled until they restore syndication. Use
+    # weworkremotely / remotive / arbeitnow for worldwide-remote coverage.
+    enabled: false
+    queries: []
+    categories: []
+
+  mustakbil:
+    enabled: true
+    categories: ["all"]   # or ["IT","Engineering","Banking-Finance",...]
+    queries: []
+    locations: []         # e.g. ["Karachi","Lahore"]
+
+  # ── Sitemap-driven crawlers ──────────────────────────────────────
+  # NOTE: dubizzle (Imperva/Incapsula bot wall) and qatarliving (no public
+  # /jobs/ sitemap) are unavailable as of 2026-04. They are kept in the
+  # registry for future revival. **For UAE / Saudi / Qatar coverage, enable the
+  # `greenhouse` ATS block below — that is the production-grade Gulf path.**
+  dubizzle:
+    enabled: false
+    languages: ["en"]
+    max_urls: 200
+    queries: []
+
+  qatarliving:
+    enabled: false
+    languages: ["en"]
+    max_urls: 200
+    queries: []
+
+  rozee:
+    # NOTE: Rozee.pk detail pages are Cloudflare-fronted with no JSON-LD —
+    # there is nothing reliable to scrape without Playwright + AI parsing.
+    # Pakistan coverage already comes from `mustakbil` (RSS) + Careem on
+    # Greenhouse (companies list below). Adapter is hard-disabled.
+    enabled: false
+    max_urls: 30
+    queries: []
+
+  # ── ATS direct (per-company; pass slugs from your seed list) ──────
+  #
+  # The pre-filled `companies` list below covers Pakistan + Gulf + global
+  # remote-friendly employers, all verified live (2026-04). Add or remove
+  # slugs freely — the adapter accepts any Greenhouse / Ashby / Lever board
+  # slug. To find a slug for a new company, open their careers page; the URL
+  # will look like boards.greenhouse.io/<slug> or jobs.lever.co/<slug>.
+  greenhouse:
+    enabled: true
+    companies:
+      # — Gulf / MENA — verified to return jobs in UAE, KSA, Qatar, Egypt, Jordan
+      - careem            # Dubai HQ; locations: UAE, KSA, Egypt, Pakistan, Jordan
+      - tamara            # Riyadh HQ; locations: KSA
+      # — Worldwide / remote-friendly —
+      - airbnb
+      - stripe
+      - figma
+      - pinterest
+      - cloudflare
+      - datadog
+      - gitlab
+      - docker
+      - discord
+      - dropbox
+      - notion
+      - vercel
+      - mercury
+
+  ashby:
+    enabled: true
+    companies:
+      - linear
+      - replit
+      - openai
+      - anthropic
+      - perplexity
+    include_compensation: true
+
+  lever:
+    enabled: true
+    # Verified live: palantir, spotify, qonto, pigment, mistral all return
+    # jobs from api.lever.co/v0/postings. netflix/shopify/github/figma have
+    # moved to other ATS — they're covered by the `greenhouse` block instead.
+    companies:
+      - palantir
+      - spotify
+      - qonto
+      - pigment
+      - mistral
+
+  workable:
+    # Verified Gulf company on Workable: Foodics (Saudi Arabia, ~67 jobs).
+    enabled: true
+    companies: ["foodics"]
+
+  smartrecruiters:
+    enabled: false
+    companies: []
+    max_pages: 5
+
+  recruitee:
+    enabled: false
+    companies: []
+
+  personio:
+    enabled: false
+    companies: []
+
+  teamtailor:
+    enabled: false
+    companies: []         # slug or full host (e.g. "career.acme.com")
+
+  # ── Universal long-tail JSON-LD scraper (opt-in) ─────────────────
+  universal:
+    enabled: false
+    urls: []              # sitemap URLs / RSS feeds / detail pages
+    queries: []
+    max_urls: 200
+    regions: []
+    robots_strict: true
+
+  # ── ToS-risk scrapers (off by default) ───────────────────────────
+  linkedin-guest:
+    enabled: false
+    acknowledge_tos_risk: false   # MUST be true to actually run
+    queries: []
+    locations: []
+    max_pages: 3
+    time_range: "r604800"        # last 7 days
+
+job_discovery:
+  enabled: true
+  dry_run_default: false
+  max_concurrency: 5
+  request_timeout_ms: 20000
+  retry_count: 2
+  retry_delay_ms: 1000
+  user_agent: "career-ops-personal-job-scanner/1.0"
+  regions:
+    include: [pakistan, gcc, uae, saudi_arabia, ireland, poland, usa, uk, europe, remote_worldwide]
+  title_filter:
+    include:
+      - software
+      - developer
+      - engineer
+      - frontend
+      - backend
+      - full stack
+      - fullstack
+      - react
+      - next.js
+      - node
+      - javascript
+      - typescript
+      - python
+      - django
+      - fastapi
+      - devops
+      - cloud
+      - ai
+      - machine learning
+      - data
+      - qa
+      - tester
+      - automation
+      - cybersecurity
+      - security
+      - soc
+      - analyst
+      - product
+      - project manager
+    exclude:
+      - nurse
+      - doctor
+      - driver
+      - warehouse
+      - teacher
+      - accountant
+      - sales only
+      - call center
+  location_filter:
+    include:
+      - Pakistan
+      - Lahore
+      - Karachi
+      - Islamabad
+      - Rawalpindi
+      - UAE
+      - United Arab Emirates
+      - Dubai
+      - Abu Dhabi
+      - Saudi Arabia
+      - KSA
+      - Riyadh
+      - Jeddah
+      - Qatar
+      - Doha
+      - Kuwait
+      - Oman
+      - Bahrain
+      - Ireland
+      - Dublin
+      - Poland
+      - Warsaw
+      - Krakow
+      - USA
+      - United States
+      - UK
+      - United Kingdom
+      - London
+      - Europe
+      - EMEA
+      - MENA
+      - GCC
+      - Gulf
+      - Remote
+      - Worldwide
+      - Global
+      - Anywhere
+    exclude:
+      - US only
+      - United States only
+      - Canada only
+      - EU only
+      - Europe only
+      - UK only
+      - Requires US work authorization
+      - Security clearance required
+  providers:
+    greenhouse: { enabled: true }
+    lever: { enabled: true }
+    ashby: { enabled: true }
+    workable: { enabled: true }
+    recruitee: { enabled: true }
+    smartrecruiters: { enabled: true }
+    remoteok: { enabled: true, attribution_required: true }
+    remotive: { enabled: true, attribution_required: true, max_runs_per_day: 4 }
+    arbeitnow: { enabled: true }
+    personio: { enabled: true }
+    adzuna: { enabled: false, requires_key: true }
+    usajobs: { enabled: false, requires_key: true }

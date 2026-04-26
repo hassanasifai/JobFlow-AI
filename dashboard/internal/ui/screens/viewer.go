@@ -1,6 +1,7 @@
 package screens
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -124,46 +125,18 @@ func (m ViewerModel) View() string {
 }
 
 func (m ViewerModel) renderHeader() string {
-	style := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(m.theme.Text).
-		Background(m.theme.Surface).
-		Width(m.width).
-		Padding(0, 2)
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Blue)
+	rightStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
+	currentLine := m.scrollOffset + 1
+	if currentLine > len(m.lines) {
+		currentLine = len(m.lines)
+	}
+	if currentLine < 1 {
+		currentLine = 1
+	}
+	lineInfo := fmt.Sprintf("%d/%d", currentLine, len(m.lines))
 
-	title := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Blue).Render(m.title)
-
-	right := lipgloss.NewStyle().Foreground(m.theme.Subtext)
-	pos := right.Render(strings.TrimRight(
-		strings.Repeat(" ", max(0, m.width-lipgloss.Width(m.title)-30)),
-		" ",
-	))
-
-	lineInfo := right.Render(
-		strings.Join([]string{
-			"L",
-			strings.TrimSpace(lipgloss.NewStyle().Render(
-				strings.Join([]string{
-					func() string {
-						s := m.scrollOffset + 1
-						if s > len(m.lines) {
-							s = len(m.lines)
-						}
-						return string(rune('0'+s/100%10)) + string(rune('0'+s/10%10)) + string(rune('0'+s%10))
-					}(),
-				}, ""),
-			)),
-			"/",
-			func() string {
-				t := len(m.lines)
-				return string(rune('0'+t/100%10)) + string(rune('0'+t/10%10)) + string(rune('0'+t%10))
-			}(),
-		}, ""),
-	)
-	_ = pos
-	_ = lineInfo
-
-	scroll := right.Render(func() string {
+	scroll := func() string {
 		if len(m.lines) == 0 {
 			return ""
 		}
@@ -182,14 +155,17 @@ func (m ViewerModel) renderHeader() string {
 			s := pct
 			return string(rune('0'+s/10%10)) + string(rune('0'+s%10)) + "%"
 		}()
-	}())
+	}()
 
-	gap := m.width - lipgloss.Width(m.title) - lipgloss.Width(scroll) - 4
-	if gap < 1 {
-		gap = 1
-	}
+	content := renderSplitLine(
+		m.title,
+		lineInfo+" "+scroll,
+		max(0, m.width-4),
+		titleStyle,
+		rightStyle,
+	)
 
-	return style.Render(title + strings.Repeat(" ", gap) + scroll)
+	return "  " + content + "  "
 }
 
 func (m ViewerModel) renderBody() string {
@@ -541,18 +517,14 @@ func (m ViewerModel) renderInlineBold(line string, baseColor lipgloss.Color) str
 }
 
 func (m ViewerModel) renderFooter() string {
-	style := lipgloss.NewStyle().
-		Foreground(m.theme.Subtext).
-		Background(m.theme.Surface).
-		Width(m.width).
-		Padding(0, 1)
-
 	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Text)
 	descStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
 
-	return style.Render(
-		keyStyle.Render("↑↓") + descStyle.Render(" scroll  ") +
-			keyStyle.Render("PgUp/Dn") + descStyle.Render(" page  ") +
-			keyStyle.Render("g/G") + descStyle.Render(" top/end  ") +
-			keyStyle.Render("Esc") + descStyle.Render(" back"))
+	return fitStyledLine(
+		keyStyle.Render("↑↓")+descStyle.Render(" scroll  ")+
+			keyStyle.Render("PgUp/Dn")+descStyle.Render(" page  ")+
+			keyStyle.Render("g/G")+descStyle.Render(" top/end  ")+
+			keyStyle.Render("Esc")+descStyle.Render(" back"),
+		m.width,
+	)
 }

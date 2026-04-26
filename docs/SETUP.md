@@ -78,3 +78,14 @@ cd dashboard
 go build -o career-dashboard .
 ./career-dashboard --path ..  # Opens TUI pipeline viewer
 ```
+
+### Local Web App
+
+If you prefer a point-and-click interface:
+
+```bash
+npm run web
+# Open http://localhost:5177
+```
+
+The web app is local-only. It shows setup progress, tracker rows, pending pipeline URLs, report previews, safe status updates, and buttons for health checks and portal scans.

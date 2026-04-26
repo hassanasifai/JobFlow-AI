@@ -3,6 +3,8 @@ cv.md
 data/applications.md
 data/pipeline.md
 data/scan-history.tsv
+data/jobs.jsonl
+data/cache/
 reports/*.md
 !reports/.gitkeep
 output/*
@@ -41,3 +43,33 @@ bun.lock
 .claude/memory/
 career-dashboard
 package-lock.json
+
+# Dashboard (Next.js) build artifacts
+dashboard-web/node_modules/
+dashboard-web/.next/
+dashboard-web/out/
+dashboard-web/.turbo/
+dashboard-web/tsconfig.tsbuildinfo
+dashboard-web/package-lock.json
+
+# Go dashboard (legacy) — compiled binaries
+dashboard/career-dashboard.exe
+dashboard/career-dashboard.exe~
+dashboard/career-dashboard
+
+# Local IDE / agent state
+.codex/
+.claude/settings.json
+
+# Knowledge graph (generated locally; large)
+graphify-out/
+
+# Probe artifacts (regenerated on each probe run)
+data/source-health.json
+
+# User-data backups
+data/*.bak
+data/applications.md.bak
+
+# Cache
+data/cache/

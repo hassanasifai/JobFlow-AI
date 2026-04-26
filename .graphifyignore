@@ -1,0 +1,14 @@
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.claude/
+.codex/
+.gemini/
+.opencode/
+.git/
+node_modules/
+graphify-out/
+output/
+batch/
+dashboard/career-dashboard.exe
+dashboard/career-dashboard.exe~
