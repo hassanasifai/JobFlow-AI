@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ApiError, api, Job } from '@/lib/api';
 import { useOverviewLookup, jobState } from '@/hooks/use-overview-lookup';
@@ -48,6 +49,7 @@ export function ApplyDialog({
   onOpenChange: (open: boolean) => void;
   job: Job | null;
 }) {
+  const router = useRouter();
   const { overview, lookup } = useOverviewLookup();
   const qc = useQueryClient();
 
@@ -104,7 +106,7 @@ export function ApplyDialog({
         description: `Application #${res.number} created.`,
         action: {
           label: 'Open',
-          onClick: () => { window.location.href = '/dashboard/applications'; },
+          onClick: () => router.push('/dashboard/applications'),
         },
       });
       onOpenChange(false);
@@ -122,7 +124,7 @@ export function ApplyDialog({
             : err.message,
           action: {
             label: 'Open tracker',
-            onClick: () => { window.location.href = '/dashboard/applications'; },
+            onClick: () => router.push('/dashboard/applications'),
           },
         });
         return;

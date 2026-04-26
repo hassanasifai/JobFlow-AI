@@ -191,33 +191,35 @@ const scanExtensions = ['md', 'yml', 'html', 'mjs', 'sh', 'go', 'json'];
 const allowedFiles = [
   // English README + localized translations (all legitimately credit Santiago)
   'README.md', 'README.es.md', 'README.ja.md', 'README.ko-KR.md',
-  'README.pt-BR.md', 'README.ru.md',
+  'README.pt-BR.md', 'README.ru.md', 'README.cn.md', 'README.zh-TW.md',
   // Standard project files
   'LICENSE', 'CITATION.cff', 'CONTRIBUTING.md',
-  'package.json', '.github/FUNDING.yml', 'CLAUDE.md', 'go.mod', 'test-all.mjs',
+  'package.json', 'package-lock.json',
+  '.github/FUNDING.yml', 'CLAUDE.md', 'go.mod', 'test-all.mjs',
   // Community / governance files (added in v1.3.0, all legitimately reference the maintainer)
   'CODE_OF_CONDUCT.md', 'GOVERNANCE.md', 'SECURITY.md', 'SUPPORT.md',
   '.github/SECURITY.md',
-  // Dashboard credit string
+  // Dashboard credit strings
   'dashboard/internal/ui/screens/pipeline.go',
+  'dashboard/internal/ui/screens/progress.go',
 ];
 
-// Build pathspec for git grep — only scan tracked files matching these
-// extensions. This is what `grep -rn` was trying to do, but git-aware:
-// untracked files (debate artifacts, AI tool scratch, local plans/) and
-// gitignored files can't trigger false positives because they were never
+// Pathspec for git grep — only scan tracked files matching these extensions.
+// Untracked files (debate artifacts, AI tool scratch, local plans/) and
+// gitignored files cannot trigger false positives because they were never
 // going to reach a commit anyway.
-const grepPathspec = scanExtensions.map(e => `'*.${e}'`).join(' ');
+const grepPathspec = scanExtensions.map((e) => `*.${e}`);
 
 let leakFound = false;
 for (const pattern of leakPatterns) {
-  const result = run(
-    `git grep -n "${pattern}" -- ${grepPathspec} 2>/dev/null`
-  );
+  // execFile-style invocation (no shell) — safe even if `pattern` ever comes
+  // from outside the literal allowlist above. Empty-stdout exit code (1)
+  // is the no-match signal, which `run()` turns into null.
+  const result = run('git', ['grep', '-n', pattern, '--', ...grepPathspec]);
   if (result) {
     for (const line of result.split('\n')) {
       const file = line.split(':')[0];
-      if (allowedFiles.some(a => file.includes(a))) continue;
+      if (allowedFiles.some((a) => file.includes(a))) continue;
       if (file.includes('dashboard/go.mod')) continue;
       warn(`Possible personal data in ${file}: "${pattern}"`);
       leakFound = true;
@@ -232,15 +234,20 @@ if (!leakFound) {
 
 console.log('\n8. Absolute path check');
 
-// Same git grep approach: only scans tracked files. Untracked AI tool
-// outputs, local debate artifacts, etc. can't false-positive here.
-const absPathResult = run(
-  `git grep -n "/Users/" -- '*.mjs' '*.sh' '*.md' '*.go' '*.yml' 2>/dev/null | grep -v README.md | grep -v LICENSE | grep -v CLAUDE.md | grep -v test-all.mjs`
-);
-if (!absPathResult) {
+// Same git grep approach: only scans tracked files.
+const absPathResultRaw = run('git', [
+  'grep', '-n', '/Users/', '--',
+  '*.mjs', '*.sh', '*.md', '*.go', '*.yml',
+]);
+const absPathSkipFiles = ['README.md', 'LICENSE', 'CLAUDE.md', 'test-all.mjs'];
+const absPathHits = (absPathResultRaw || '')
+  .split('\n')
+  .filter(Boolean)
+  .filter((line) => !absPathSkipFiles.some((skip) => line.startsWith(skip + ':') || line.includes('/' + skip + ':')));
+if (absPathHits.length === 0) {
   pass('No absolute paths in code files');
 } else {
-  for (const line of absPathResult.split('\n').filter(Boolean)) {
+  for (const line of absPathHits) {
     fail(`Absolute path: ${line.slice(0, 100)}`);
   }
 }
@@ -290,19 +297,45 @@ for (const section of requiredSections) {
   }
 }
 
-// ── 11. VERSION FILE ────────────────────────────────────────────
+// ── 11. VERSION SYNC ────────────────────────────────────────────
 
-console.log('\n11. Version file');
+console.log('\n11. Version sync (VERSION ≡ package.json ≡ release-please-manifest)');
+
+const semver = /^\d+\.\d+\.\d+$/;
+const sources = {};
 
 if (fileExists('VERSION')) {
-  const version = readFile('VERSION').trim();
-  if (/^\d+\.\d+\.\d+$/.test(version)) {
-    pass(`VERSION is valid semver: ${version}`);
-  } else {
-    fail(`VERSION is not valid semver: "${version}"`);
-  }
+  sources.VERSION = readFile('VERSION').trim();
 } else {
   fail('VERSION file missing');
+}
+
+try {
+  sources['package.json'] = JSON.parse(readFile('package.json')).version;
+} catch {
+  fail('package.json missing or invalid JSON');
+}
+
+try {
+  const manifest = JSON.parse(readFile('.release-please-manifest.json'));
+  sources['.release-please-manifest.json'] = manifest['.'];
+} catch {
+  fail('.release-please-manifest.json missing or invalid JSON');
+}
+
+for (const [src, ver] of Object.entries(sources)) {
+  if (semver.test(ver)) {
+    pass(`${src} is valid semver: ${ver}`);
+  } else {
+    fail(`${src} is not valid semver: "${ver}"`);
+  }
+}
+
+const uniqueVersions = new Set(Object.values(sources));
+if (uniqueVersions.size === 1) {
+  pass(`All version sources agree (${[...uniqueVersions][0]})`);
+} else {
+  fail(`Version desync — sources disagree: ${JSON.stringify(sources)}`);
 }
 
 // ── SUMMARY ─────────────────────────────────────────────────────

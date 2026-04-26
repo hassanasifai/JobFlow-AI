@@ -19,7 +19,7 @@ export default function FollowupsPage() {
   const run = useMutation({
     mutationFn: () => api.runCommand('followupCadence'),
   });
-  useEffect(() => { run.mutate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { run.mutate(); }, []);
 
   const items = extractFollowups(run.data?.stdout);
 

@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { execFile } from 'node:child_process';
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -29,8 +29,28 @@ import {
   saveReport,
 } from './scanners/agents/_prompt.mjs';
 import { ProviderError } from './scanners/agents/_base.mjs';
+import { safeParseJson, JsonSafeError } from './lib/json-safe.mjs';
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)));
+
+// Hard wallclock cap on streaming agent runs. Even when the client stays
+// connected, a hung provider should not pin a connection forever. Five
+// minutes covers normal evaluations comfortably; runs that genuinely need
+// longer can be split or moved to async batch.
+const STREAM_AGENT_TIMEOUT_MS = 5 * 60_000;
+
+// Structured logger. Routes everything through one function so production
+// log shipping (or quiet test mode via LOG_LEVEL=silent) is a single change.
+function logServer(level, message, meta) {
+  if (process.env.LOG_LEVEL === 'silent') return;
+  const ts = new Date().toISOString();
+  const line = meta
+    ? `[${ts}] ${level} ${message} ${JSON.stringify(meta)}`
+    : `[${ts}] ${level} ${message}`;
+  if (level === 'error') console.error(line);
+  else if (level === 'warn') console.warn(line);
+  else console.log(line);
+}
 const WEB_DIR = join(PROJECT_ROOT, 'web');
 const DATA_DIR = join(PROJECT_ROOT, 'data');
 const REPORTS_DIR = join(PROJECT_ROOT, 'reports');
@@ -501,10 +521,14 @@ async function readJson(req) {
   if (total === 0) return {};
   const text = Buffer.concat(chunks).toString('utf8');
   try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === 'object') return parsed;
-    throw new Error('JSON body must be an object');
-  } catch {
+    // safeParseJson rejects __proto__/constructor/prototype keys before they
+    // can reach any merge/clone helper that would walk Object.prototype.
+    const parsed = safeParseJson(text);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    throw new HttpError(400, 'JSON body must be an object');
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    if (err instanceof JsonSafeError) throw new HttpError(400, 'Invalid JSON payload');
     throw new HttpError(400, 'Invalid JSON payload');
   }
 }
@@ -635,6 +659,42 @@ export async function computeOverview(root = PROJECT_ROOT) {
     outputs,
     generatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Atomic file write: write to a sibling .tmp file, then rename into place.
+ * `rename` is atomic on POSIX. On Windows it's atomic when both files are on
+ * the same volume, but concurrent renames to the same target can transiently
+ * fail with EPERM/EBUSY while the OS holds locks; we retry briefly to absorb
+ * those. In production all callers also serialize through `withWriteLock`.
+ *
+ * Crash-safety: a partial write leaves `${path}.tmp.${rnd}` behind (best-
+ * effort cleaned below) instead of corrupting the real file.
+ */
+export async function atomicWriteFile(path, content) {
+  const tmp = `${path}.tmp.${randomUUID()}`;
+  try {
+    await writeFile(tmp, content, 'utf8');
+    await renameWithRetry(tmp, path);
+  } catch (err) {
+    try { await unlink(tmp); } catch { /* ignore */ }
+    throw err;
+  }
+}
+
+async function renameWithRetry(from, to, attempts = 6) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (err) {
+      const transient = err && (err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES');
+      if (!transient || i === attempts - 1) throw err;
+      // Exponential-ish backoff with jitter: ~10ms, 25ms, 60ms, 130ms, 270ms.
+      const wait = 10 * Math.pow(2, i) + Math.floor(Math.random() * 10);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
 }
 
 function withWriteLock(task) {
@@ -850,7 +910,7 @@ async function handleApi(req, res, root) {
     const fullPath = getEditablePath(root, path);
     await withWriteLock(async () => {
       await mkdir(dirname(fullPath), { recursive: true });
-      await writeFile(fullPath, content, 'utf8');
+      await atomicWriteFile(fullPath, content);
     });
 
     sendJson(res, 200, {
@@ -894,7 +954,7 @@ async function handleApi(req, res, root) {
     await withWriteLock(async () => {
       const current = await readOptional(appsPath, '');
       const updated = updateApplicationStatusMarkdown(current, number, status);
-      await writeFile(appsPath, updated, 'utf8');
+      await atomicWriteFile(appsPath, updated);
     });
 
     sendJson(res, 200, { ok: true, overview: await computeOverview(root) });
@@ -917,7 +977,7 @@ async function handleApi(req, res, root) {
     await withWriteLock(async () => {
       const current = await readOptional(appsPath, '');
       const updated = updateApplicationNotesMarkdown(current, number, notes);
-      await writeFile(appsPath, updated, 'utf8');
+      await atomicWriteFile(appsPath, updated);
     });
 
     sendJson(res, 200, { ok: true, overview: await computeOverview(root) });
@@ -943,7 +1003,7 @@ async function handleApi(req, res, root) {
     await withWriteLock(async () => {
       const current = await readOptional(pipelinePath, '# career-ops pipeline\n\n## Pendientes\n\n## Procesadas\n');
       const updated = addPipelineItemMarkdown(current, { url: entryUrl, company, role });
-      await writeFile(pipelinePath, updated, 'utf8');
+      await atomicWriteFile(pipelinePath, updated);
     });
 
     sendJson(res, 200, { ok: true, overview: await computeOverview(root) });
@@ -963,7 +1023,7 @@ async function handleApi(req, res, root) {
     await withWriteLock(async () => {
       const current = await readOptional(pipelinePath, '# career-ops pipeline\n\n## Pendientes\n\n## Procesadas\n');
       const updated = togglePipelineItemMarkdown(current, lineNumber, checked);
-      await writeFile(pipelinePath, updated, 'utf8');
+      await atomicWriteFile(pipelinePath, updated);
     });
 
     sendJson(res, 200, { ok: true, overview: await computeOverview(root) });
@@ -982,7 +1042,7 @@ async function handleApi(req, res, root) {
     await withWriteLock(async () => {
       const current = await readOptional(pipelinePath, '# career-ops pipeline\n\n## Pendientes\n\n## Procesadas\n');
       const updated = removePipelineItemMarkdown(current, lineNumber);
-      await writeFile(pipelinePath, updated, 'utf8');
+      await atomicWriteFile(pipelinePath, updated);
     });
 
     sendJson(res, 200, { ok: true, overview: await computeOverview(root) });
@@ -1769,7 +1829,7 @@ async function upsertSavedSearch(body, root) {
       items.push(entry);
     }
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, yaml.dump({ searches: items }, { lineWidth: 120 }), 'utf8');
+    await atomicWriteFile(path, yaml.dump({ searches: items }, { lineWidth: 120 }));
     return entry;
   });
 }
@@ -1788,7 +1848,7 @@ async function handleSavedSearchDelete(id, res, root) {
       return;
     }
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, yaml.dump({ searches: next }, { lineWidth: 120 }), 'utf8');
+    await atomicWriteFile(path, yaml.dump({ searches: next }, { lineWidth: 120 }));
     sendJson(res, 200, { ok: true, id });
   });
   return true;
@@ -1904,7 +1964,7 @@ async function createApplication(body, root) {
       notes,
     });
     await mkdir(dirname(appsPath), { recursive: true });
-    await writeFile(appsPath, nextApps, 'utf8');
+    await atomicWriteFile(appsPath, nextApps);
 
     // Seed pipeline.md so the URL is traceable. Mark as processed so it doesn't
     // pollute the pending inbox. Idempotent: skip if the URL already appears.
@@ -1914,7 +1974,7 @@ async function createApplication(body, root) {
       const alreadyTracked = beforePipe.includes(url);
       if (!alreadyTracked) {
         const nextPipe = appendProcessedPipelineItemMarkdown(beforePipe, { url, company, role });
-        await writeFile(pipelinePath, nextPipe, 'utf8');
+        await atomicWriteFile(pipelinePath, nextPipe);
       }
     }
 
@@ -2033,6 +2093,15 @@ async function streamAgentRun({
   const ac = new AbortController();
   req.on('close', () => { ac.abort(); stopKeepalive(); });
 
+  // Hard wallclock timeout: even if the client stays connected, a hung
+  // provider should not pin a connection forever. Aborts the underlying
+  // provider call which surfaces as a normal error event.
+  let timedOut = false;
+  const wallclockTimer = setTimeout(() => {
+    timedOut = true;
+    ac.abort();
+  }, STREAM_AGENT_TIMEOUT_MS);
+
   let combined = '';
   const onToken = (evt) => {
     combined += evt.chunk;
@@ -2048,12 +2117,17 @@ async function streamAgentRun({
       signal: ac.signal,
     });
   } catch (err) {
-    const message = err instanceof ProviderError ? err.message : String(err?.message || err);
+    const message = timedOut
+      ? `Provider exceeded ${STREAM_AGENT_TIMEOUT_MS / 1000}s wallclock timeout`
+      : (err instanceof ProviderError ? err.message : String(err?.message || err));
     const hint = err instanceof ProviderError ? err.hint : undefined;
-    writeEvent('error', { message, hint, provider: provider.id });
+    writeEvent('error', { message, hint, provider: provider.id, timeout: timedOut });
+    clearTimeout(wallclockTimer);
     stopKeepalive();
     res.end();
     return;
+  } finally {
+    clearTimeout(wallclockTimer);
   }
 
   // Parse the score summary — only meaningful for evaluation modes; other
@@ -2221,7 +2295,16 @@ function composeFollowupMessage(body) {
  * report's full content and ship them as the user message.
  */
 function composeCompareMessage(body, root) {
-  const ids = Array.isArray(body.report_paths) ? body.report_paths.slice(0, 6) : [];
+  // Reject oversized arrays up-front rather than truncating after the loop —
+  // a 10 000-item array would force the server to walk every entry through
+  // safeJoin/readFile before silently dropping all but six. Cap fail-fast.
+  if (!Array.isArray(body.report_paths)) {
+    throw new HttpError(400, 'report_paths must be an array');
+  }
+  if (body.report_paths.length > 6) {
+    throw new HttpError(400, 'report_paths must contain at most 6 entries');
+  }
+  const ids = body.report_paths;
   if (ids.length < 2) {
     throw new HttpError(400, 'Provide at least 2 report_paths to compare');
   }
@@ -2550,7 +2633,7 @@ async function streamCvStudio({ req, res, body, root }) {
       const next = mutateApplicationsMarkdown(current, Number(body.application_number), (cells) => {
         cells[6] = '✅';                                    // PDF column
       });
-      await writeFile(appsPath, next, 'utf8');
+      await atomicWriteFile(appsPath, next);
     } catch { /* non-fatal — UI shows the PDF link regardless */ }
   }
 
@@ -2795,6 +2878,15 @@ export function createCareerOpsServer({ root = PROJECT_ROOT } = {}) {
         sendJson(res, error.status, { error: error.message });
         return;
       }
+      // Log unhandled errors with full context. Without this the only signal
+      // an operator gets is a generic 500, making prod issues uninvestigable.
+      logServer('error', 'unhandled request error', {
+        method: req.method,
+        path: requestPath,
+        message: String(error?.message || error),
+        stack: error?.stack,
+      });
+      // Generic message to the client — never leak stack/path internals.
       sendJson(res, 500, { error: 'Internal server error' });
     }
   });

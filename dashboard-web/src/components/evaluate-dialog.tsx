@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Job, streamAgent, StreamEvent } from '@/lib/api';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -53,6 +53,7 @@ export function EvaluateDialog({
   title?: string;
   description?: string;
 }) {
+  const router = useRouter();
   const [modelId, setModelId] = useState<string | null>(null);
   const [language, setLanguage] = useState('en');
   const [running, setRunning] = useState(false);
@@ -147,7 +148,7 @@ export function EvaluateDialog({
         description: summary?.score != null ? `Score: ${summary.score}/5` : undefined,
         action: reportPath ? {
           label: 'Open report',
-          onClick: () => { window.location.href = `/dashboard/reports?path=${encodeURIComponent(reportPath)}`; },
+          onClick: () => router.push(`/dashboard/reports?path=${encodeURIComponent(reportPath)}`),
         } : undefined,
       });
     } else if (evt.type === 'error') {

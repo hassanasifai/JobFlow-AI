@@ -2,6 +2,9 @@
   "name": "dashboard-web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -58,6 +61,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "happy-dom": "^20.9.0",
+    "isomorphic-dompurify": "^2.30.0",
     "jsdom": "^29.0.2",
     "tailwindcss": "^4",
     "typescript": "^5",

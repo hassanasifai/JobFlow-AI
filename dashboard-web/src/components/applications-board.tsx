@@ -56,9 +56,11 @@ export function ApplicationsBoard({ applications }: { applications: ApplicationR
     status: s,
     items: applications.filter((a) => normalize(a.status) === s),
   }));
-  // Pin "uncategorized" rows under Evaluated.
+  // Pin "uncategorized" rows under Evaluated. STATUS_OPTIONS is non-empty by
+  // construction, but TS with noUncheckedIndexedAccess can't prove that — so
+  // we guard explicitly instead of suppressing the warning.
   const uncategorized = applications.filter((a) => !STATUS_OPTIONS.includes(normalize(a.status) as Status));
-  if (uncategorized.length) grouped[0].items.push(...uncategorized);
+  if (uncategorized.length && grouped[0]) grouped[0].items.push(...uncategorized);
 
   return (
     <ScrollArea className="w-full">

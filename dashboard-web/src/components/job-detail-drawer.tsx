@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { api, Job } from '@/lib/api';
 import { regionLabel, relativeTime } from '@/lib/format';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { toast } from 'sonner';
 import { ApplyDialog } from '@/components/apply-dialog';
 import { JobStateBadge } from '@/components/job-state-badge';
@@ -138,6 +138,7 @@ function DrawerFooterActions({
   job: Job | null;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const qc = useQueryClient();
   const [applyOpen, setApplyOpen] = useState(false);
   const [evaluateOpen, setEvaluateOpen] = useState(false);
@@ -156,7 +157,7 @@ function DrawerFooterActions({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['overview'] });
       toast.success('Saved to pipeline', {
-        action: { label: 'Open', onClick: () => { window.location.href = '/dashboard/pipeline'; } },
+        action: { label: 'Open', onClick: () => router.push('/dashboard/pipeline') },
       });
     },
     onError: (e: Error) => toast.error('Couldn\'t save', { description: e.message }),
@@ -293,10 +294,17 @@ function NotInListAlert({ url }: { url: string }) {
 
 function JobDescription({ job }: { job: Job }) {
   const [showFull, setShowFull] = useState(false);
-  const html = job.description_html || job.description || '';
-  if (!html.trim()) return <p className="text-sm text-muted-foreground italic">No description available.</p>;
+  const raw = job.description_html || job.description || '';
+  const isHtml = /<[a-z][\s\S]*>/i.test(raw);
+  // DOMPurify sanitizes provider HTML inside the component so the result is
+  // memoized per-job. Without this, scripts/event-handlers/iframes injected
+  // by a hostile provider would execute via dangerouslySetInnerHTML. Hook
+  // call lives at the top of the function (before any early return) to obey
+  // React's rules-of-hooks.
+  const safeHtml = useMemo(() => (isHtml ? sanitizeHtml(raw) : ''), [raw, isHtml]);
 
-  const isHtml = /<[a-z][\s\S]*>/i.test(html);
+  if (!raw.trim()) return <p className="text-sm text-muted-foreground italic">No description available.</p>;
+
   return (
     <div>
       <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Description</div>
@@ -304,15 +312,12 @@ function JobDescription({ job }: { job: Job }) {
         className={`prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed ${showFull ? '' : 'line-clamp-[14]'}`}
       >
         {isHtml ? (
-          // Provider HTML is sanitized by the upstream JSON-LD/JobPosting feed
-          // and mostly contains <p>, <ul>, <strong>, <a>. Renders inline so
-          // bullet lists from Greenhouse/Ashby look right.
-          <div dangerouslySetInnerHTML={{ __html: html }} />
+          <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
         ) : (
-          <pre className="whitespace-pre-wrap font-sans">{html}</pre>
+          <pre className="whitespace-pre-wrap font-sans">{raw}</pre>
         )}
       </div>
-      {!showFull && html.length > 600 && (
+      {!showFull && raw.length > 600 && (
         <Button variant="link" size="sm" className="px-0 mt-1" onClick={() => setShowFull(true)}>
           Show full description
         </Button>

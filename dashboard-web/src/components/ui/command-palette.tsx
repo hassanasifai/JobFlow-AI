@@ -7,13 +7,11 @@
 // Exposes a context hook `useCommandPalette()` so any component can
 // open it programmatically (e.g. the Topbar's search button).
 
-'use client';
-
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Command as CmdK } from 'cmdk';
 import {
-  Briefcase, ClipboardList, Activity, FileText, Layout, Settings, Send,
+  Briefcase, ClipboardList, Activity, FileText, Settings, Send,
   Sparkles, FlaskConical, GitCompare, ListChecks, Inbox, Library, Play, BarChart3,
   PanelsTopLeft, Search,
 } from 'lucide-react';

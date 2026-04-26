@@ -148,8 +148,9 @@ function AddUrlForm({
       <CardContent>
         <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_auto] gap-2">
           <div className="space-y-1">
-            <Label className="sr-only">URL</Label>
+            <Label htmlFor="pipeline-add-url" className="sr-only">URL</Label>
             <Input
+              id="pipeline-add-url"
               type="url"
               required
               placeholder="https://jobs.example.com/role/123"
@@ -158,12 +159,22 @@ function AddUrlForm({
             />
           </div>
           <div className="space-y-1">
-            <Label className="sr-only">Company</Label>
-            <Input placeholder="Company" value={company} onChange={(e) => setCompany(e.target.value)} />
+            <Label htmlFor="pipeline-add-company" className="sr-only">Company</Label>
+            <Input
+              id="pipeline-add-company"
+              placeholder="Company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
           </div>
           <div className="space-y-1">
-            <Label className="sr-only">Role</Label>
-            <Input placeholder="Role" value={role} onChange={(e) => setRole(e.target.value)} />
+            <Label htmlFor="pipeline-add-role" className="sr-only">Role</Label>
+            <Input
+              id="pipeline-add-role"
+              placeholder="Role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            />
           </div>
           <Button type="submit" disabled={submitting} className="gap-1.5">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FilePlus2 className="h-4 w-4" />}

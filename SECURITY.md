@@ -29,6 +29,20 @@ Security issues in the following are in scope:
 - Social engineering attacks
 - career-ops is a local tool — there is no hosted service to attack
 
+## Dependency Vulnerabilities
+
+Dependencies are tracked by Dependabot (npm root, npm dashboard-web, gomod dashboard, github-actions). Critical CVEs in transitive deps trigger an immediate patch release; subscribe to GitHub Releases to get notified. The GitHub Actions workflow `dependency-review.yml` blocks PRs that introduce high-severity vulnerabilities.
+
+## Hardening Defaults
+
+- Localhost-only HTTP server bind (`127.0.0.1:5177`)
+- Strict Content-Security-Policy + X-Frame-Options DENY on every response
+- Atomic file writes (temp + rename) for tracker mutations
+- SSRF guard on every outbound `fetch` (rejects private IPs, cloud metadata)
+- Prototype-pollution guard on every JSON parse of untrusted input
+- Wallclock timeouts on all streaming endpoints
+- Provider HTML sanitized via DOMPurify before rendering in the dashboard
+
 ## Disclosure Policy
 
 We follow coordinated disclosure. Once a fix is released, we will credit the reporter (unless they prefer anonymity) in the release notes.

@@ -16,6 +16,12 @@ import path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import { normalizeJob } from './_normalize.mjs';
 import { normalizeUrl } from './_dedupe.mjs';
+import { assertPublicUrl, SsrfError } from '../lib/url-safe.mjs';
+import { safeParseJson, assertSafeJson, JsonSafeError } from '../lib/json-safe.mjs';
+
+// Hard cap on redirect chain length — defense against redirect loops and
+// bandwidth-amplification attacks via long redirect chains.
+const MAX_REDIRECTS = 5;
 
 // ── Job schema ──────────────────────────────────────────────────────
 
@@ -197,13 +203,19 @@ export async function fetchWithRetry(url, opts = {}) {
     cacheTtlMs = defaultCacheTtlMs(url),
   } = opts;
 
+  // Validate target URL up-front. Cheap to fail fast before opening sockets,
+  // and ensures the cache key is also for a public URL.
+  await assertPublicUrl(url);
+
   const cacheEnabled = accept !== 'buffer'
     && cacheTtlMs > 0
     && process.env.CAREER_OPS_NO_CACHE !== '1';
   const cachePath = cacheEnabled ? responseCachePath(url, accept) : null;
   if (cachePath && existsSync(cachePath)) {
     try {
-      const cached = JSON.parse(readFileSync(cachePath, 'utf-8'));
+      // safeParseJson protects against tampered cache files attempting
+      // prototype pollution via the on-disk JSON.
+      const cached = safeParseJson(readFileSync(cachePath, 'utf-8'));
       if (Date.now() - cached.timestamp <= cacheTtlMs) {
         return accept === 'json' ? cached.body : String(cached.body ?? '');
       }
@@ -224,7 +236,9 @@ export async function fetchWithRetry(url, opts = {}) {
     if (signal) signal.addEventListener('abort', onAbort, { once: true });
     const timer = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs);
     try {
-      const res = await fetch(url, { method, headers: finalHeaders, body, signal: controller.signal, redirect: 'follow' });
+      const res = await followRedirectsSafely(url, {
+        method, headers: finalHeaders, body, signal: controller.signal,
+      });
 
       if (res.status === 429) {
         const ra = parseInt(res.headers.get('retry-after') || '0', 10);
@@ -246,9 +260,16 @@ export async function fetchWithRetry(url, opts = {}) {
       }
 
       let bodyOut;
-      if (accept === 'json') bodyOut = await res.json();
-      else if (accept === 'buffer') bodyOut = Buffer.from(await res.arrayBuffer());
-      else bodyOut = await res.text();
+      if (accept === 'json') {
+        bodyOut = await res.json();
+        // Defense-in-depth: scrub upstream JSON for prototype-pollution keys
+        // before passing it to adapters. Throws JsonSafeError on violation.
+        assertSafeJson(bodyOut);
+      } else if (accept === 'buffer') {
+        bodyOut = Buffer.from(await res.arrayBuffer());
+      } else {
+        bodyOut = await res.text();
+      }
       if (cachePath && accept !== 'buffer') {
         try {
           mkdirSync(path.dirname(cachePath), { recursive: true });
@@ -258,6 +279,8 @@ export async function fetchWithRetry(url, opts = {}) {
       return bodyOut;
     } catch (err) {
       lastErr = err;
+      // SSRF and JSON-safety errors are non-retriable by definition.
+      if (err instanceof SsrfError || err instanceof JsonSafeError) throw err;
       const retriable = err.name === 'AbortError' || /network|fetch failed|ECONN|ETIMEDOUT|ENOTFOUND/i.test(err.message);
       if (attempt < retries && retriable) {
         await sleep(backoffMs(attempt));
@@ -270,6 +293,34 @@ export async function fetchWithRetry(url, opts = {}) {
     }
   }
   throw lastErr;
+}
+
+/**
+ * Follow redirects manually, validating each Location target with
+ * assertPublicUrl. Native `redirect: 'follow'` cannot reject mid-chain
+ * redirects to private IPs (e.g. cloud metadata), so we walk the chain
+ * ourselves.
+ */
+async function followRedirectsSafely(url, init) {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await fetch(current, { ...init, redirect: 'manual' });
+    const loc = res.headers.get('location');
+    const isRedirect = res.status >= 300 && res.status < 400 && loc;
+    if (!isRedirect) return res;
+    if (hop >= MAX_REDIRECTS) {
+      throw new FetchError(`Too many redirects from ${url}`, { status: res.status, url, retriable: false });
+    }
+    const nextUrl = new URL(loc, current).toString();
+    await assertPublicUrl(nextUrl);
+    current = nextUrl;
+    // Per RFC 7231, 303 forces GET on follow. Other 3xx preserve method.
+    if (res.status === 303 && init.method && init.method.toUpperCase() !== 'GET') {
+      init = { ...init, method: 'GET', body: undefined };
+    }
+  }
+  // Unreachable — defensive.
+  throw new FetchError(`Redirect loop on ${url}`, { url, retriable: false });
 }
 
 function responseCachePath(url, accept) {

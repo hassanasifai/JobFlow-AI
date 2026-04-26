@@ -18,6 +18,30 @@ export default defineConfig({
     globals: true,                       // describe/it/expect without import
     include: ['src/**/*.test.{ts,tsx}'],
     css: true,                            // let test components import CSS modules
+    coverage: {
+      // v8 is built-in (no extra dep) and fast. Run with `npm test -- --coverage`.
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/app/**/layout.tsx',
+        'src/app/**/error.tsx',
+        'src/app/**/global-error.tsx',
+        'src/app/**/loading.tsx',
+        'src/app/**/not-found.tsx',
+      ],
+      // Floors raised iteratively as tests are added; intentionally low
+      // initial bar so the gate doesn't fail on Day 1.
+      thresholds: {
+        statements: 25,
+        branches: 50,
+        functions: 30,
+        lines: 25,
+      },
+    },
   },
   resolve: {
     alias: {

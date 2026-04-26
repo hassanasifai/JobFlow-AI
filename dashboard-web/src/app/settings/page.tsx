@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, AgentProvider } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
+import { getErrorMessage } from '@/lib/errors';
 
 const EDITABLE = [
   { path: 'config/profile.yml', label: 'Profile', icon: User, hint: 'Your name, location, target roles, salary range.' },
@@ -57,9 +58,6 @@ export default function SettingsPage() {
   );
 }
 
-// Default = first editable tab.
-EDITABLE[0] && undefined;
-
 function ConfigEditor({ path, hint }: { path: string; hint: string }) {
   const [content, setContent] = useState('');
   const [original, setOriginal] = useState('');
@@ -68,18 +66,26 @@ function ConfigEditor({ path, hint }: { path: string; hint: string }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true); setError(null);
+  // Stable load callback — used by both the initial-mount effect (re-runs
+  // when `path` changes) and the manual Reload button.
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await api.configRead(path);
       setContent(res.content || '');
       setOriginal(res.content || '');
       setExists(res.exists);
     } catch (e) {
-      setError((e as Error).message);
-    } finally { setLoading(false); }
-  };
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [path]);
+      setError(getErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [path]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const save = async () => {
     setSaving(true);
@@ -88,7 +94,7 @@ function ConfigEditor({ path, hint }: { path: string; hint: string }) {
       setOriginal(content);
       toast.success('Saved', { description: path });
     } catch (e) {
-      toast.error('Couldn\'t save', { description: (e as Error).message });
+      toast.error('Couldn\'t save', { description: getErrorMessage(e) });
     } finally { setSaving(false); }
   };
 

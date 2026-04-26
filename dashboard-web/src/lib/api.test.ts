@@ -51,11 +51,11 @@ describe('streamAgent', () => {
     ));
     const events = await collect(streamAgent('/api/evaluate', { jd_text: 'x' }));
     expect(events).toHaveLength(3);
-    expect(events[0]).toEqual({ type: 'token', chunk: 'Hello, ', i: 0 });
-    expect(events[1]).toEqual({ type: 'token', chunk: 'world', i: 1 });
-    const done = events[2];
-    expect(done.type).toBe('done');
-    if (done.type === 'done' && 'summary' in done) {
+    const [first, second, done] = events;
+    expect(first).toEqual({ type: 'token', chunk: 'Hello, ', i: 0 });
+    expect(second).toEqual({ type: 'token', chunk: 'world', i: 1 });
+    expect(done?.type).toBe('done');
+    if (done && done.type === 'done' && 'summary' in done) {
       expect(done.summary?.score).toBe(4.2);
       expect(done.report_path).toBe('reports/001.md');
     }
@@ -85,8 +85,8 @@ describe('streamAgent', () => {
     const events = await collect(streamAgent('/api/evaluate', { jd_text: 'x' }));
     // Two real events, zero comment events.
     expect(events).toHaveLength(2);
-    expect(events[0].type).toBe('token');
-    expect(events[1].type).toBe('done');
+    expect(events[0]?.type).toBe('token');
+    expect(events[1]?.type).toBe('done');
   });
 
   it('emits a synthetic error event on 4xx response', async () => {
@@ -96,9 +96,9 @@ describe('streamAgent', () => {
     ));
     const events = await collect(streamAgent('/api/evaluate', { jd_text: 'x' }));
     expect(events).toHaveLength(1);
-    const e = events[0];
-    expect(e.type).toBe('error');
-    if (e.type === 'error') {
+    const [e] = events;
+    expect(e?.type).toBe('error');
+    if (e && e.type === 'error') {
       expect(e.message).toBe('JD too short');
       expect(e.hint).toBe('Paste at least 40 chars');
     }
@@ -108,9 +108,10 @@ describe('streamAgent', () => {
     globalThis.fetch = vi.fn(async () => new Response('Internal', { status: 500 }));
     const events = await collect(streamAgent('/api/evaluate', { jd_text: 'x' }));
     expect(events).toHaveLength(1);
-    expect(events[0].type).toBe('error');
-    if (events[0].type === 'error') {
-      expect(events[0].message).toMatch(/HTTP 500|Internal/);
+    const [first] = events;
+    expect(first?.type).toBe('error');
+    if (first && first.type === 'error') {
+      expect(first.message).toMatch(/HTTP 500|Internal/);
     }
   });
 
@@ -146,12 +147,12 @@ describe('streamAgent', () => {
     ));
     const events = await collect(streamAgent('/api/generate-cv', {}));
     expect(events).toHaveLength(4);
-    expect(events[0].type).toBe('stage');
-    expect(events[1].type).toBe('progress');
-    expect(events[2].type).toBe('stage');
-    expect(events[3].type).toBe('done');
+    expect(events[0]?.type).toBe('stage');
+    expect(events[1]?.type).toBe('progress');
+    expect(events[2]?.type).toBe('stage');
+    expect(events[3]?.type).toBe('done');
     const done = events[3];
-    if (done.type === 'done' && 'pdf_path' in done) {
+    if (done && done.type === 'done' && 'pdf_path' in done) {
       expect(done.pdf_path).toBe('output/cv.pdf');
     }
   });

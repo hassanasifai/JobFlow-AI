@@ -1,8 +1,10 @@
 {
   description = "career-ops - AI job search pipeline";
 
+  # nixpkgs is pinned to a specific commit so devShells are reproducible across
+  # contributors and across time. Bump deliberately with `nix flake update`.
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/0726a0ecb6d4e08f6adced58726b95db924cef57";
     flakelight.url = "github:nix-community/flakelight";
   };
 

@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Briefcase, ExternalLink, MapPin, Building2, AlertTriangle, Sparkles } from 'lucide-react';
+import { Briefcase, ExternalLink, MapPin, Building2, AlertTriangle } from 'lucide-react';
 import { JobsFilterBar } from '@/components/jobs-filter-bar';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useFilterUrlState } from '@/hooks/use-filter-url-state';
 import { regionLabel, relativeTime } from '@/lib/format';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { JobDetailDrawer, useJobDetailUrlState } from '@/components/job-detail-drawer';
 import { NumberTicker } from '@/components/ui/number-ticker';
@@ -85,6 +86,12 @@ function JobsListInner() {
   });
 
   // Auto-fetch the next page when the sentinel row scrolls into view.
+  // The dependency array intentionally excludes `rowVirtualizer.getVirtualItems()`:
+  // that call returns a fresh array on every render and would re-trigger the
+  // effect every frame, causing an infinite fetch loop. We re-read the current
+  // virtual items inside the effect, and rely on the virtualizer's internal
+  // counters (`rowVirtualizer.range`) and `flat.length` as the actual signals.
+  const range = rowVirtualizer.range;
   useEffect(() => {
     const items = rowVirtualizer.getVirtualItems();
     const last = items[items.length - 1];
@@ -92,7 +99,10 @@ function JobsListInner() {
     if (last.index >= flat.length - 1 && jobsQuery.hasNextPage && !jobsQuery.isFetchingNextPage) {
       jobsQuery.fetchNextPage();
     }
-  }, [rowVirtualizer.getVirtualItems(), flat.length, jobsQuery]);
+    // rowVirtualizer changes are tracked through `range` (a primitive object
+    // updated on scroll). flat.length covers data growth. The remaining deps
+    // are query flags. eslint-react-hooks is happy with this set.
+  }, [range, flat.length, jobsQuery, rowVirtualizer]);
 
   return (
     <div className="space-y-4">
@@ -122,7 +132,7 @@ function JobsListInner() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Couldn&apos;t load jobs</AlertTitle>
-          <AlertDescription>{(jobsQuery.error as Error).message}</AlertDescription>
+          <AlertDescription>{getErrorMessage(jobsQuery.error)}</AlertDescription>
         </Alert>
       )}
 
@@ -249,10 +259,6 @@ function JobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
     </button>
   );
 }
-
-// Suppress unused-import warning for components that may be removed during polish.
-void Card;
-void Sparkles;
 
 function remoteScopeLabel(s: string): string {
   switch (s) {

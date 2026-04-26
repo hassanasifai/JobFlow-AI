@@ -67,15 +67,72 @@ function validateStatus(status) {
   return 'Evaluated';
 }
 
-function normalizeCompany(name) {
+export function normalizeCompany(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function roleFuzzyMatch(a, b) {
-  const wordsA = a.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-  const wordsB = b.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-  const overlap = wordsA.filter(w => wordsB.some(wb => wb.includes(w) || w.includes(wb)));
-  return overlap.length >= 2;
+// Seniority/level qualifiers — when one role has one and the other doesn't,
+// they're distinct postings (different comp band, scope, expectations) even
+// if every other word matches. Without this guard, "Senior ML Engineer" gets
+// folded into "ML Engineer" and the entry is silently lost.
+const SENIORITY_QUALIFIERS = new Set([
+  'junior', 'jr', 'mid', 'senior', 'sr', 'lead', 'principal', 'staff',
+  'distinguished', 'chief', 'head', 'director', 'manager', 'vp',
+  'intern', 'internship', 'graduate', 'entry', 'apprentice',
+  'i', 'ii', 'iii', 'iv',
+]);
+
+/**
+ * Decide whether two role titles refer to the same posting (for dedup).
+ * Returns true only when both share substantive vocabulary AND have the
+ * same seniority profile.
+ */
+export function roleFuzzyMatch(a, b) {
+  const tokensA = tokenize(a);
+  const tokensB = tokenize(b);
+  if (tokensA.length === 0 || tokensB.length === 0) return false;
+
+  const setA = new Set(tokensA);
+  const setB = new Set(tokensB);
+
+  // Seniority qualifiers must agree. If one role has "senior" and the other
+  // doesn't, they're different postings regardless of other overlap.
+  const seniorA = [...setA].filter((t) => SENIORITY_QUALIFIERS.has(t)).sort().join(',');
+  const seniorB = [...setB].filter((t) => SENIORITY_QUALIFIERS.has(t)).sort().join(',');
+  if (seniorA !== seniorB) return false;
+
+  // Substantive (non-seniority) tokens must overlap heavily.
+  const substA = [...setA].filter((t) => !SENIORITY_QUALIFIERS.has(t));
+  const substB = [...setB].filter((t) => !SENIORITY_QUALIFIERS.has(t));
+  const overlap = substA.filter((t) => substB.includes(t));
+  if (overlap.length < 2) return false;
+
+  // Require the overlap to be a substantial fraction of the larger side —
+  // catches "Backend Engineer" vs "Backend ML Engineer" as distinct.
+  const ratio = overlap.length / Math.max(substA.length, substB.length);
+  return ratio >= 0.6;
+}
+
+function tokenize(role) {
+  return String(role || '')
+    .toLowerCase()
+    .replace(/[()/,]/g, ' ')
+    .replace(/\b(\.|-)\b/g, ' ')
+    .split(/\s+/)
+    .map((t) => t.replace(/[^a-z0-9]/g, ''))
+    .filter((t) => t.length >= 2);
+}
+
+/**
+ * Escape leading characters that spreadsheet apps interpret as formulas
+ * (=, +, -, @, tab, CR). Used when emitting markdown-table cells from
+ * untrusted data so a copy-paste into Excel/LibreOffice is safe.
+ */
+export function escapeFormula(value) {
+  if (value == null) return '';
+  const s = String(value);
+  if (/^[=+\-@\t\r]/.test(s.trim())) return `'${s}`;
+  return s;
 }
 
 function extractReportNum(reportStr) {
@@ -185,6 +242,15 @@ function parseTsvContent(content, filename) {
 
 // ---- Main ----
 
+// Only run the CLI body when invoked directly (`node merge-tracker.mjs ...`).
+// Importing this module from tests or other scripts must not auto-execute,
+// since the script body calls process.exit() in several branches.
+import { pathToFileURL } from 'url';
+const IS_MAIN = import.meta.url === pathToFileURL(process.argv[1] || '').href;
+
+if (IS_MAIN) main();
+
+function main() {
 // Read applications.md
 if (!existsSync(APPS_FILE)) {
   console.log('No applications.md found. Nothing to merge into.');
@@ -274,7 +340,7 @@ for (const file of tsvFiles) {
       console.log(`🔄 Update: #${duplicate.num} ${addition.company} — ${addition.role} (${oldScore}→${newScore})`);
       const lineIdx = appLines.indexOf(duplicate.raw);
       if (lineIdx >= 0) {
-        const updatedLine = `| ${duplicate.num} | ${addition.date} | ${addition.company} | ${addition.role} | ${addition.score} | ${duplicate.status} | ${duplicate.pdf} | ${addition.report} | Re-eval ${addition.date} (${oldScore}→${newScore}). ${addition.notes} |`;
+        const updatedLine = `| ${duplicate.num} | ${addition.date} | ${escapeFormula(addition.company)} | ${escapeFormula(addition.role)} | ${addition.score} | ${duplicate.status} | ${duplicate.pdf} | ${addition.report} | Re-eval ${addition.date} (${oldScore}→${newScore}). ${escapeFormula(addition.notes)} |`;
         appLines[lineIdx] = updatedLine;
         updated++;
       }
@@ -287,7 +353,7 @@ for (const file of tsvFiles) {
     const entryNum = addition.num > maxNum ? addition.num : ++maxNum;
     if (addition.num > maxNum) maxNum = addition.num;
 
-    const newLine = `| ${entryNum} | ${addition.date} | ${addition.company} | ${addition.role} | ${addition.score} | ${addition.status} | ${addition.pdf} | ${addition.report} | ${addition.notes} |`;
+    const newLine = `| ${entryNum} | ${addition.date} | ${escapeFormula(addition.company)} | ${escapeFormula(addition.role)} | ${addition.score} | ${addition.status} | ${addition.pdf} | ${addition.report} | ${escapeFormula(addition.notes)} |`;
     newLines.push(newLine);
     added++;
     console.log(`➕ Add #${entryNum}: ${addition.company} — ${addition.role} (${addition.score})`);
@@ -333,3 +399,5 @@ if (VERIFY && !DRY_RUN) {
     process.exit(1);
   }
 }
+
+} // end of main()

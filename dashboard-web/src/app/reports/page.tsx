@@ -181,7 +181,7 @@ function extractMeta(markdown: string): {
   // Reports use a header block like "**Score:** 4.2/5", "**URL:** https://...".
   const grab = (label: RegExp) => {
     const m = markdown.match(label);
-    return m ? m[1].trim() : null;
+    return m && m[1] ? m[1].trim() : null;
   };
   return {
     score: grab(/\*\*Score:\*\*\s*([^\n]+)/i),

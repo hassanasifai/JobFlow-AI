@@ -1,5 +1,10 @@
 name: Label PRs
 
+# pull_request_target is required so the labeler can write labels on PRs from
+# forks (the default GITHUB_TOKEN under `pull_request` is read-only for forks).
+# This workflow does NOT check out PR code — it only reads file paths from the
+# PR metadata and applies labels based on .github/labeler.yml. No untrusted
+# code execution path exists, so the elevated token is safe.
 on:
   pull_request_target:
     types: [opened, synchronize]

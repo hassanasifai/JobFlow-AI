@@ -42,7 +42,6 @@ bun.lock
 .claude/settings.local.json
 .claude/memory/
 career-dashboard
-package-lock.json
 
 # Dashboard (Next.js) build artifacts
 dashboard-web/node_modules/
@@ -50,7 +49,6 @@ dashboard-web/.next/
 dashboard-web/out/
 dashboard-web/.turbo/
 dashboard-web/tsconfig.tsbuildinfo
-dashboard-web/package-lock.json
 
 # Go dashboard (legacy) — compiled binaries
 dashboard/career-dashboard.exe

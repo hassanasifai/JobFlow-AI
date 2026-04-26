@@ -98,7 +98,8 @@ function buildFunnel(apps: ApplicationRow[]): { status: string; count: number; p
 }
 
 function ScoreHistogram({ apps }: { apps: ApplicationRow[] }) {
-  const buckets = [0, 0, 0, 0, 0]; // <2, 2-3, 3-4, 4-4.5, 4.5+
+  // Tuple type lets TS know each index is always present (no `| undefined`).
+  const buckets: [number, number, number, number, number] = [0, 0, 0, 0, 0]; // <2, 2-3, 3-4, 4-4.5, 4.5+
   for (const a of apps) {
     if (a.score <= 0) continue;
     if (a.score < 2) buckets[0]++;
@@ -107,19 +108,22 @@ function ScoreHistogram({ apps }: { apps: ApplicationRow[] }) {
     else if (a.score < 4.5) buckets[3]++;
     else buckets[4]++;
   }
-  const labels = ['< 2.0', '2.0–3.0', '3.0–4.0', '4.0–4.5', '4.5+'];
+  const labels: [string, string, string, string, string] = ['< 2.0', '2.0–3.0', '3.0–4.0', '4.0–4.5', '4.5+'];
   const max = Math.max(1, ...buckets);
   return (
     <div className="space-y-1.5">
-      {labels.map((l, i) => (
-        <div key={l} className="flex items-center gap-2 text-xs">
-          <span className="w-16 text-muted-foreground">{l}</span>
-          <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary" style={{ width: `${(buckets[i] / max) * 100}%` }} />
+      {labels.map((l, i) => {
+        const value = buckets[i as 0 | 1 | 2 | 3 | 4];
+        return (
+          <div key={l} className="flex items-center gap-2 text-xs">
+            <span className="w-16 text-muted-foreground">{l}</span>
+            <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-primary" style={{ width: `${(value / max) * 100}%` }} />
+            </div>
+            <Badge variant="outline" className="w-10 justify-center text-[10px] tabular-nums">{value}</Badge>
           </div>
-          <Badge variant="outline" className="w-10 justify-center text-[10px] tabular-nums">{buckets[i]}</Badge>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

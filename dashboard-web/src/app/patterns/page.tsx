@@ -24,7 +24,7 @@ export default function PatternsPage() {
     onError: (e: Error) => toast.error('Couldn\'t run analysis', { description: e.message }),
   });
 
-  useEffect(() => { run.mutate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { run.mutate(); }, []);
 
   const json = parseSummary(run.data?.stdout);
 

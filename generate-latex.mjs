@@ -31,11 +31,35 @@ const REQUIRED_COMMANDS = [
   '\\\\resumeProjectHeading',
 ];
 
+// Reject filesystem paths that contain characters known to confuse subprocesses
+// (NUL, control chars, shell metachars, newlines). execFileSync with array
+// args is already safe from shell injection, but pdflatex itself parses some
+// of these and a tampered path would land in the .log file or bypass output
+// quoting on edge platforms.
+function assertSafePath(p, label) {
+  if (typeof p !== 'string' || p.length === 0) {
+    console.error(`Invalid ${label}: empty`);
+    process.exit(1);
+  }
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1f;|&`$<>\n\r]/.test(p)) {
+    console.error(`Invalid ${label}: contains forbidden characters`);
+    process.exit(1);
+  }
+}
+
 async function main() {
   const inputPath = process.argv[2];
   const outputPath = process.argv[3]; // optional
   if (!inputPath) {
     console.error('Usage: node generate-latex.mjs <input.tex> [output.pdf]');
+    process.exit(1);
+  }
+
+  assertSafePath(inputPath, 'input path');
+  if (outputPath) assertSafePath(outputPath, 'output path');
+  if (!/\.tex$/i.test(inputPath)) {
+    console.error('Input must be a .tex file');
     process.exit(1);
   }
 
@@ -121,6 +145,10 @@ async function main() {
   // --- Compile .tex → .pdf via pdflatex ---
   const texDir = dirname(absPath);
   const texBase = basename(absPath, '.tex');
+  // The resolved path went through Node's path resolution; re-check that no
+  // metachars survived (e.g. via a symlink).
+  assertSafePath(texDir, 'tex directory');
+  assertSafePath(texBase, 'tex basename');
   const defaultPdf = join(texDir, `${texBase}.pdf`);
   const targetPdf = outputPath ? resolve(outputPath) : defaultPdf;
 

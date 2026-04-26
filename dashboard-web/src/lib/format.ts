@@ -1,10 +1,18 @@
 // src/lib/format.ts — UI-only formatters. Keep pure & dependency-free.
 
-export function relativeTime(iso: string | null | undefined): string {
+/**
+ * Format a timestamp as a human-readable distance from `now`.
+ *
+ * Pass an explicit `now` to keep the output stable across re-renders and
+ * across SSR → CSR. Without `now`, this uses Date.now() — which produces
+ * different output on every render and breaks memoization, and during SSR
+ * vs CSR causes a hydration mismatch warning.
+ */
+export function relativeTime(iso: string | null | undefined, now: number = Date.now()): string {
   if (!iso) return '—';
   const ts = Date.parse(iso);
   if (Number.isNaN(ts)) return '—';
-  const diff = Date.now() - ts;
+  const diff = now - ts;
   const abs = Math.abs(diff);
   const sign = diff >= 0 ? '' : 'in ';
   const unit = (n: number, label: string) =>

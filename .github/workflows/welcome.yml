@@ -1,5 +1,8 @@
 name: Welcome
 
+# pull_request_target is used so the welcome message can be posted on PRs from
+# forks. This workflow does NOT check out PR code — it only posts a comment
+# from a hardcoded template. No code execution path from the PR exists.
 on:
   pull_request_target:
     types: [opened]
