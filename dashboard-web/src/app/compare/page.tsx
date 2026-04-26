@@ -18,6 +18,7 @@ import { ModelPicker } from '@/components/model-picker';
 import { MarkdownView } from '@/components/markdown-view';
 import { toast } from 'sonner';
 import { relativeTime } from '@/lib/format';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * Compare offers — surfaces modes/ofertas.md. The user picks 2–4 evaluation
@@ -99,14 +100,11 @@ function CompareInner() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Scale className="h-6 w-6 text-primary" /> Compare offers
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Pick 2–4 evaluation reports. modes/ofertas.md scores them across 10 weighted dimensions and gives a final recommendation.
-        </p>
-      </div>
+      <PageHeader
+        icon={Scale}
+        title="Compare offers"
+        description="Pick 2–4 evaluation reports. modes/ofertas.md scores them across 10 weighted dimensions and gives a final recommendation."
+      />
 
       <Card>
         <CardHeader className="pb-3">

@@ -16,6 +16,7 @@ import { FileText, Search, AlertTriangle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MarkdownView } from '@/components/markdown-view';
 import { relativeTime } from '@/lib/format';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function ReportsPage() {
   return (
@@ -53,14 +54,13 @@ function ReportsBrowser() {
 
   return (
     <div className="space-y-5 h-full">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <FileText className="h-6 w-6 text-primary" /> Reports
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Markdown evaluation reports under <code className="text-xs px-1 rounded bg-muted">reports/</code>.
-        </p>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Reports"
+        description={
+          <>Markdown evaluation reports under <code className="text-xs px-1 rounded bg-muted">reports/</code>.</>
+        }
+      />
 
       {overview.error && (
         <Alert variant="destructive">

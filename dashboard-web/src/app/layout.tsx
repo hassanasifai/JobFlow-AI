@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
+import { PageTransition } from '@/components/ui/page-transition';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -16,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Career-Ops Dashboard',
-  description: 'Single-user job discovery console — Pakistan, Gulf, worldwide remote.',
+  title: 'JobFlow AI · Dashboard',
+  description: 'AI-driven job-search command center — discover, evaluate, and apply.',
 };
 
 export default function RootLayout({
@@ -29,13 +30,15 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background text-foreground">
+      <body className="relative min-h-full bg-background text-foreground">
         <Providers>
-          <div className="flex min-h-screen">
+          <div className="relative flex min-h-screen">
             <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex flex-1 flex-col min-w-0">
               <Topbar />
-              <main className="flex-1 px-4 md:px-8 py-6">{children}</main>
+              <main className="relative flex-1 px-4 md:px-8 py-6">
+                <PageTransition>{children}</PageTransition>
+              </main>
             </div>
           </div>
         </Providers>

@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FilePlus2, Loader2, Trash2, Activity, ExternalLink, Eye, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function PipelinePage() {
   const overview = useQuery({ queryKey: ['overview'], queryFn: api.overview });
@@ -76,14 +77,11 @@ export default function PipelinePage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <FilePlus2 className="h-6 w-6 text-primary" /> Pipeline
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          The inbox of pending JD URLs you&apos;ve discovered. Mark as processed once you&apos;ve evaluated them.
-        </p>
-      </div>
+      <PageHeader
+        icon={FilePlus2}
+        title="Pipeline"
+        description="The inbox of pending JD URLs you've discovered. Mark as processed once you've evaluated them."
+      />
 
       {overview.error && (
         <Alert variant="destructive">

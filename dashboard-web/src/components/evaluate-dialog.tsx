@@ -16,6 +16,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Sparkles, AlertTriangle, Square, FileText } from 'lucide-react';
 import { ModelPicker } from '@/components/model-picker';
 import { MarkdownView } from '@/components/markdown-view';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { BorderBeam } from '@/components/ui/border-beam';
+import { ScoreRing } from '@/components/ui/score-ring';
 import { toast } from 'sonner';
 
 type Endpoint = '/api/evaluate' | '/api/deep-research' | '/api/contacto';
@@ -161,10 +164,15 @@ export function EvaluateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl flex flex-col max-h-[90vh]">
+      <DialogContent className="max-w-3xl flex flex-col max-h-[90vh] relative overflow-hidden">
+        {running && <BorderBeam size={180} duration={5} />}
+        {/* Subtle gradient stripe under the header */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-primary/30 to-brand-violet/30 ring-1 ring-inset ring-primary/30">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+            </span>
             {title}
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -221,19 +229,32 @@ export function EvaluateDialog({
         )}
 
         {(running || text) && (
-          <div className="border rounded-md bg-card flex-1 overflow-hidden flex flex-col">
-            <div className="px-3 py-1.5 border-b text-xs text-muted-foreground flex items-center gap-2">
+          <div className="border border-border/60 rounded-lg bg-card/60 backdrop-blur-sm flex-1 overflow-hidden flex flex-col">
+            <div className="px-3 py-2 border-b border-border/60 text-xs text-muted-foreground flex items-center gap-2">
               {running ? (
-                <><Loader2 className="h-3 w-3 animate-spin" /> Streaming…</>
+                <>
+                  <span className="relative inline-flex h-2 w-2">
+                    <span aria-hidden className="absolute inset-0 rounded-full bg-primary animate-[pulse-ring_2s_cubic-bezier(0.4,0,0.6,1)_infinite]" />
+                    <span className="relative h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                  <Loader2 className="h-3 w-3 animate-spin" /> Streaming response…
+                </>
               ) : done ? (
                 <><Sparkles className="h-3 w-3 text-emerald-500" /> Done in {(done.durationMs / 1000).toFixed(1)}s</>
               ) : null}
-              {done?.score != null && <Badge variant="secondary" className="ml-auto">Score {done.score}/5</Badge>}
+              {done?.score != null && (
+                <div className="ml-auto flex items-center gap-2">
+                  <ScoreRing score={done.score} size={26} strokeWidth={3} showLabel={false} />
+                  <span className="font-medium tabular-nums">{done.score}/5</span>
+                </div>
+              )}
             </div>
             <ScrollArea className="flex-1 max-h-[55vh]">
               <div className="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">
-                {/* MarkdownView re-renders on every chunk — fine for this length */}
                 <MarkdownView markdown={text || '_(awaiting first token…)_'} />
+                {running && (
+                  <span aria-hidden className="ml-0.5 inline-block h-[1em] w-[2px] -translate-y-[2px] align-middle bg-primary animate-pulse" />
+                )}
               </div>
             </ScrollArea>
           </div>
@@ -252,9 +273,9 @@ export function EvaluateDialog({
               <Square className="h-4 w-4" /> Stop
             </Button>
           ) : (
-            <Button onClick={start} disabled={!modelId} className="gap-1.5">
-              <Sparkles className="h-4 w-4" /> {text ? 'Re-run' : 'Run'}
-            </Button>
+            <ShimmerButton onClick={start} disabled={!modelId}>
+              <Sparkles className="h-3.5 w-3.5" /> {text ? 'Re-run' : 'Run evaluation'}
+            </ShimmerButton>
           )}
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="ml-auto">
             Close

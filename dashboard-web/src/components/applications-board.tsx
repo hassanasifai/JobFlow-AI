@@ -3,16 +3,19 @@
 import { useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'motion/react';
 import { ApplicationRow, api } from '@/lib/api';
 import { STATUS_OPTIONS, STATUS_COLOR, STATUS_TINT, Status } from '@/lib/states';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScoreRing } from '@/components/ui/score-ring';
 import { FileText, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ApplicationNotesEditor } from '@/components/application-notes-editor';
+import { spring } from '@/lib/motion';
 
 /**
  * Kanban view for the applications tracker.
@@ -100,25 +103,46 @@ function Column({
         if (Number.isFinite(num)) onDropTo(num);
       }}
       className={cn(
-        'w-72 flex-shrink-0 rounded-lg border transition-colors',
+        'w-72 flex-shrink-0 rounded-xl border border-border/50 backdrop-blur-sm transition-all duration-200',
         STATUS_TINT[status],
-        over && 'ring-2 ring-primary',
+        over && 'ring-2 ring-primary shadow-[0_0_24px_-4px_hsl(var(--primary)/0.5)] scale-[1.01]',
       )}
     >
-      <div className="px-3 py-2.5 flex items-center justify-between border-b">
+      <div className="px-3 py-2.5 flex items-center justify-between border-b border-border/40">
         <div className="flex items-center gap-2">
-          <span className={cn('h-2 w-2 rounded-full', STATUS_COLOR[status])} />
-          <span className="text-sm font-medium">{status}</span>
+          <span className="relative flex h-2 w-2">
+            <span className={cn('absolute inset-0 rounded-full opacity-60 animate-[pulse-ring_2.4s_cubic-bezier(0.4,0,0.6,1)_infinite]', STATUS_COLOR[status])} aria-hidden />
+            <span className={cn('relative h-2 w-2 rounded-full', STATUS_COLOR[status])} />
+          </span>
+          <span className="text-sm font-medium tracking-tight">{status}</span>
         </div>
-        <Badge variant="secondary" className="text-[10px] px-1.5">{items.length}</Badge>
+        <Badge variant="secondary" className="text-[10px] px-1.5 tabular-nums">{items.length}</Badge>
       </div>
       <div className="p-2 space-y-2 min-h-[80px]">
-        {items.length === 0 && (
-          <p className="text-xs text-muted-foreground px-2 py-3 text-center italic">No items</p>
-        )}
-        {items.map((a) => (
-          <ApplicationCard key={a.number} app={a} onDragStart={onDragStart} />
-        ))}
+        <AnimatePresence mode="popLayout">
+          {items.length === 0 && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-xs text-muted-foreground px-2 py-3 text-center italic"
+            >
+              Drop a card here
+            </motion.p>
+          )}
+          {items.map((a) => (
+            <motion.div
+              key={a.number}
+              layout
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={spring}
+            >
+              <ApplicationCard app={a} onDragStart={onDragStart} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -139,18 +163,21 @@ function ApplicationCard({
         e.dataTransfer.effectAllowed = 'move';
         onDragStart(app.number);
       }}
-      className="p-3 space-y-1.5 cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow"
+      className="group p-3 space-y-1.5 cursor-grab active:cursor-grabbing border border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/30 hover:shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.3)] transition-all duration-200"
     >
       <div className="flex items-start gap-2">
-        <GripVertical className="h-3.5 w-3.5 mt-0.5 text-muted-foreground flex-shrink-0" />
+        <GripVertical className="h-3.5 w-3.5 mt-0.5 text-muted-foreground/60 flex-shrink-0 group-hover:text-primary transition-colors" />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium leading-tight truncate">{app.role}</div>
           <div className="text-xs text-muted-foreground truncate">{app.company}</div>
         </div>
+        {app.score > 0 && (
+          <ScoreRing score={app.score} size={28} strokeWidth={3} showLabel={false} className="shrink-0" />
+        )}
       </div>
       <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground pl-5">
-        <span>#{app.number} · {app.date}</span>
-        {app.score > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{app.scoreRaw}</Badge>}
+        <span className="tabular-nums">#{app.number} · {app.date}</span>
+        {app.score > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 tabular-nums">{app.scoreRaw}</Badge>}
       </div>
       <div className="pl-5 flex flex-wrap gap-1 items-center">
         {app.reportPath && (

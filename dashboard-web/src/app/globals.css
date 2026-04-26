@@ -1,26 +1,305 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* shadcn dark-mode discriminator: any element under .dark uses dark tokens.
+   We ALSO honor prefers-color-scheme via the body classlist below. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ────────────────────────────────────────────────────────────────────────
+   Design tokens — JobFlow AI
+   Dark-first. Single cyan accent. Subtle glass for elevated surfaces.
+   ──────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* shadcn-compatible base (LIGHT) */
+  --background:        0 0% 100%;
+  --foreground:        222 24% 11%;
+  --card:              0 0% 100%;
+  --card-foreground:   222 24% 11%;
+  --popover:           0 0% 100%;
+  --popover-foreground:222 24% 11%;
+  --primary:           188 95% 43%;          /* cyan accent */
+  --primary-foreground:0 0% 100%;
+  --secondary:         210 30% 96%;
+  --secondary-foreground:222 24% 11%;
+  --muted:             210 30% 96%;
+  --muted-foreground:  215 16% 47%;
+  --accent:            210 30% 96%;
+  --accent-foreground: 222 24% 11%;
+  --destructive:       0 80% 60%;
+  --destructive-foreground:0 0% 100%;
+  --border:            214 30% 91%;
+  --input:             214 30% 91%;
+  --ring:              188 95% 43%;
+  --radius:            0.6rem;
+
+  /* JobFlow brand extensions */
+  --brand-cyan:        188 95% 43%;
+  --brand-cyan-soft:   188 95% 60%;
+  --brand-violet:      262 83% 58%;
+  --brand-emerald:     158 64% 52%;
+  --brand-amber:       38 92% 50%;
+  --brand-rose:        351 83% 60%;
+
+  /* Glass surfaces (rgba so they layer over arbitrary backgrounds) */
+  --glass-bg:          rgba(255, 255, 255, 0.6);
+  --glass-border:      rgba(15, 23, 42, 0.08);
+  --glass-shadow:      0 1px 1px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
+
+  /* Gradient stops for AI-driven affordances */
+  --grad-ai:           linear-gradient(135deg, hsl(188 95% 50%) 0%, hsl(220 90% 60%) 50%, hsl(262 83% 65%) 100%);
+  --grad-ai-soft:      linear-gradient(135deg, hsl(188 95% 50% / 0.18), hsl(262 83% 65% / 0.18));
+  --grad-aurora:       conic-gradient(from 220deg at 50% 50%, hsl(188 95% 50%), hsl(220 90% 60%), hsl(262 83% 65%), hsl(188 95% 50%));
+
+  /* Status colors used across Sources / Apps / Tracker */
+  --status-healthy:    158 64% 48%;
+  --status-stale:      38 92% 50%;
+  --status-error:      0 80% 60%;
+  --status-needs:      262 83% 58%;
+  --status-unavailable:215 16% 55%;
 }
+
+/* ── Dark mode tokens ─────────────────────────────────────────────────── */
+
+.dark {
+  --background:        222 28% 6%;            /* near-black with hint of blue */
+  --foreground:        210 30% 96%;
+  --card:              222 24% 9%;
+  --card-foreground:   210 30% 96%;
+  --popover:           222 28% 7%;
+  --popover-foreground:210 30% 96%;
+  --primary:           188 95% 50%;
+  --primary-foreground:222 28% 6%;
+  --secondary:         222 22% 14%;
+  --secondary-foreground:210 30% 96%;
+  --muted:             222 22% 14%;
+  --muted-foreground:  215 20% 65%;
+  --accent:            222 22% 14%;
+  --accent-foreground: 210 30% 96%;
+  --destructive:       0 75% 60%;
+  --destructive-foreground:210 30% 96%;
+  --border:            222 22% 16%;
+  --input:             222 22% 14%;
+  --ring:              188 95% 50%;
+
+  --glass-bg:          rgba(15, 23, 42, 0.55);
+  --glass-border:      rgba(255, 255, 255, 0.06);
+  --glass-shadow:      0 1px 1px rgba(0, 0, 0, 0.5), 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+
+  --grad-ai-soft:      linear-gradient(135deg, hsl(188 95% 50% / 0.22), hsl(262 83% 65% / 0.22));
+}
+
+/* ── Tailwind v4 theme bridge ─────────────────────────────────────────── */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-brand-cyan: hsl(var(--brand-cyan));
+  --color-brand-violet: hsl(var(--brand-violet));
+  --color-brand-emerald: hsl(var(--brand-emerald));
+  --color-brand-amber: hsl(var(--brand-amber));
+  --color-brand-rose: hsl(var(--brand-rose));
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --animate-shimmer: shimmer 2.5s linear infinite;
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-breathe: breathe 3.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-gradient-shift: gradient-shift 8s linear infinite;
+  --animate-aurora: aurora 20s linear infinite;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-beam: beam 2.4s linear infinite;
+  --animate-fade-in: fade-in 0.4s ease-out both;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Keyframes ────────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.6; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.85; transform: scale(1.03); }
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@keyframes aurora {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes beam {
+  0%   { offset-distance: 0%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Base layer ───────────────────────────────────────────────────────── */
+
+* { border-color: hsl(var(--border)); }
+
+html, body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary-foreground));
+}
+
+/* Subtle ambient gradient on the body for dark mode — gives the whole shell
+   a touch of life without being distracting. */
+.dark body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60vw 50vh at 12% 0%, hsl(var(--brand-cyan) / 0.05), transparent 60%),
+    radial-gradient(50vw 40vh at 95% 100%, hsl(var(--brand-violet) / 0.06), transparent 60%);
+  z-index: 0;
+}
+
+/* ── Utility classes ──────────────────────────────────────────────────── */
+
+@utility glass {
+  background: var(--glass-bg);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+@utility glass-strong {
+  background: var(--glass-bg);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+@utility gradient-text {
+  background: var(--grad-ai);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility gradient-text-soft {
+  background: linear-gradient(135deg, hsl(var(--brand-cyan)), hsl(var(--brand-violet)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility lift-on-hover {
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1.4),
+              box-shadow 220ms ease-out,
+              border-color 220ms ease-out;
+}
+.lift-on-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -12px hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary) / 0.45);
+}
+
+@utility shimmer-bg {
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    hsl(var(--primary) / 0.18) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Decorative glow for AI-driven CTAs */
+@utility glow-primary {
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.3),
+    0 0 20px -2px hsl(var(--primary) / 0.45),
+    inset 0 1px 0 hsl(var(--primary) / 0.1);
+}
+
+/* Conic gradient ring backdrop — reused by BorderBeam, ScoreRing, etc. */
+@utility conic-cyan-violet {
+  background: conic-gradient(
+    from 220deg at 50% 50%,
+    hsl(var(--brand-cyan)),
+    hsl(var(--brand-violet)),
+    hsl(var(--brand-cyan))
+  );
+}
+
+/* ── Scrollbar polish (dark only — light keeps native) ─────────────────── */
+
+.dark ::-webkit-scrollbar { width: 10px; height: 10px; }
+.dark ::-webkit-scrollbar-track { background: transparent; }
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+  background-clip: content-box;
+}
+
+/* ── Reduced-motion respect ───────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

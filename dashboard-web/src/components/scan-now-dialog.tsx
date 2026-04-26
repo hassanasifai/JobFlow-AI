@@ -147,9 +147,15 @@ export function ScanNowDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col relative overflow-hidden">
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Play className="h-5 w-5 text-primary" />Scan now</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-primary/30 to-brand-violet/30 ring-1 ring-inset ring-primary/30">
+              <Play className="h-3.5 w-3.5 text-primary" />
+            </span>
+            Scan now
+          </DialogTitle>
           <DialogDescription>Pick providers + a free-text query, then run. Results stream in below.</DialogDescription>
         </DialogHeader>
 

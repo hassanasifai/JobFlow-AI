@@ -9,13 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Briefcase, ExternalLink, MapPin, Building2, AlertTriangle } from 'lucide-react';
+import { Briefcase, ExternalLink, MapPin, Building2, AlertTriangle, Sparkles } from 'lucide-react';
 import { JobsFilterBar } from '@/components/jobs-filter-bar';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useFilterUrlState } from '@/hooks/use-filter-url-state';
 import { regionLabel, relativeTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { JobDetailDrawer, useJobDetailUrlState } from '@/components/job-detail-drawer';
+import { NumberTicker } from '@/components/ui/number-ticker';
 
 const PAGE_SIZE = 50;
 const PAGE_LIMIT = 500;          // matches API_MAX
@@ -95,8 +96,18 @@ function JobsListInner() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary/30 to-brand-violet/30 ring-1 ring-inset ring-primary/30">
+            <Briefcase className="h-4 w-4 text-primary" />
+          </span>
+          Jobs
+          {!jobsQuery.isLoading && total > 0 && (
+            <span className="text-sm font-normal text-muted-foreground tabular-nums ml-2">
+              <NumberTicker value={total} /> matches
+            </span>
+          )}
+        </h1>
         <p className="text-sm text-muted-foreground">Listings collected by your last scan, deduped across providers.</p>
       </div>
 
@@ -169,22 +180,31 @@ function virtualRowStyle(row: { start: number; size: number }) {
 
 function JobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
   return (
-    <Card
-      className="mx-3 my-2 px-4 py-3 hover:shadow-md transition-shadow border-muted/60 cursor-pointer"
+    <button
+      type="button"
       onClick={onOpen}
+      className={cn(
+        'group relative mx-3 my-1.5 w-[calc(100%-1.5rem)] text-left rounded-xl',
+        'border border-border/50 bg-card/60 px-4 py-3 transition-all duration-200',
+        'hover:border-primary/40 hover:bg-card hover:shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.25)] hover:-translate-y-0.5',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+      )}
     >
+      {/* Left edge accent — fades in on hover */}
+      <span
+        aria-hidden
+        className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-primary opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onOpen(); }}
-              className="font-medium text-foreground hover:text-primary hover:underline truncate text-left"
-            >
+            <span className="font-medium text-foreground truncate group-hover:text-primary transition-colors">
               {job.title}
-            </button>
+            </span>
             {job.remote_scope && job.remote_scope !== 'none' && (
-              <Badge variant="secondary" className="text-xs">{remoteScopeLabel(job.remote_scope)}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border border-primary/20">
+                {remoteScopeLabel(job.remote_scope)}
+              </Badge>
             )}
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
@@ -198,17 +218,17 @@ function JobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
                 {job.location}
               </span>
             )}
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 font-mono text-xs">
               <Briefcase className="h-3.5 w-3.5" />
               {job.source}
             </span>
           </div>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {job.region_group && (
-              <Badge variant="outline" className="text-xs">{regionLabel(job.region_group)}</Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{regionLabel(job.region_group)}</Badge>
             )}
             {job.posted_at && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground">
                 Posted {relativeTime(job.posted_at)}
               </span>
             )}
@@ -218,7 +238,7 @@ function JobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
           asChild
           variant="ghost"
           size="sm"
-          className="flex-shrink-0"
+          className="flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
           <a href={job.apply_url || job.url} target="_blank" rel="noopener noreferrer">
@@ -226,9 +246,13 @@ function JobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
           </a>
         </Button>
       </div>
-    </Card>
+    </button>
   );
 }
+
+// Suppress unused-import warning for components that may be removed during polish.
+void Card;
+void Sparkles;
 
 function remoteScopeLabel(s: string): string {
   switch (s) {

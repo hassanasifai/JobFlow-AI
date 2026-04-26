@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TrendingUp, AlertTriangle, Loader2, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * Patterns analysis — wraps `analyze-patterns.mjs` (already a CLI command
@@ -29,20 +30,19 @@ export default function PatternsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" /> Patterns
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Status / score / time-to-response patterns from <code className="text-xs px-1 rounded bg-muted">data/applications.md</code>.
-          </p>
-        </div>
-        <Button onClick={() => run.mutate()} disabled={run.isPending} variant="outline" className="gap-1.5">
-          {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="Patterns"
+        description={
+          <>Status / score / time-to-response patterns from <code className="text-xs px-1 rounded bg-muted">data/applications.md</code>.</>
+        }
+        actions={
+          <Button onClick={() => run.mutate()} disabled={run.isPending} variant="outline" className="gap-1.5">
+            {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+            Refresh
+          </Button>
+        }
+      />
 
       {run.error && (
         <Alert variant="destructive">

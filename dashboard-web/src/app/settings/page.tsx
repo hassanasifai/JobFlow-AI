@@ -13,6 +13,7 @@ import {
   Settings, FileText, User, Globe, Bot, AlertTriangle, Save, RefreshCcw, CheckCircle2, XCircle, DollarSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 
 const EDITABLE = [
   { path: 'config/profile.yml', label: 'Profile', icon: User, hint: 'Your name, location, target roles, salary range.' },
@@ -25,12 +26,11 @@ const EDITABLE = [
 export default function SettingsPage() {
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Settings className="h-6 w-6 text-primary" /> Settings
-        </h1>
-        <p className="text-sm text-muted-foreground">Edit any career-ops config file from the browser. Models tab shows AI runtime availability.</p>
-      </div>
+      <PageHeader
+        icon={Settings}
+        title="Settings"
+        description="Edit any JobFlow AI config file from the browser. Models tab shows AI runtime availability."
+      />
 
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList className="flex flex-wrap">

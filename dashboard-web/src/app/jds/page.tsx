@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FolderOpen, AlertTriangle, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { relativeTime } from '@/lib/format';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * JDs library — browser for files in jds/. Lists every .txt/.md/.html file
@@ -33,14 +34,13 @@ export default function JdsPage() {
 
   return (
     <div className="space-y-5 h-full">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <FolderOpen className="h-6 w-6 text-primary" /> JDs library
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Files under <code className="text-xs px-1 rounded bg-muted">jds/</code>. Drop a JD here from the CLI to re-evaluate later.
-        </p>
-      </div>
+      <PageHeader
+        icon={FolderOpen}
+        title="JD library"
+        description={
+          <>Files under <code className="text-xs px-1 rounded bg-muted">jds/</code>. Drop a JD here from the CLI to re-evaluate later.</>
+        }
+      />
 
       {list.error && (
         <Alert variant="destructive">

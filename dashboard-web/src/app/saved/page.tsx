@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Bookmark, Plus, Pencil, Trash2, Play, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -80,27 +81,25 @@ export default function SavedSearchesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Bookmark className="h-6 w-6 text-primary" />
-            Saved searches
-          </h1>
-          <p className="text-sm text-muted-foreground">Reusable filters. Each saves the regions, titles, and providers you care about.</p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditing(null)} className="gap-2">
-              <Plus className="h-4 w-4" /> New
-            </Button>
-          </DialogTrigger>
-          <SavedSearchForm
-            initial={editing}
-            onSubmit={(values) => upsert.mutate(values)}
-            submitting={upsert.isPending}
-          />
-        </Dialog>
-      </div>
+      <PageHeader
+        icon={Bookmark}
+        title="Saved searches"
+        description="Reusable filters. Each saves the regions, titles, and providers you care about."
+        actions={
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditing(null)} className="gap-2">
+                <Plus className="h-4 w-4" /> New
+              </Button>
+            </DialogTrigger>
+            <SavedSearchForm
+              initial={editing}
+              onSubmit={(values) => upsert.mutate(values)}
+              submitting={upsert.isPending}
+            />
+          </Dialog>
+        }
+      />
 
       {list.error && (
         <Alert variant="destructive">

@@ -17,6 +17,8 @@ import {
   FileDown, Sparkles, Loader2, AlertTriangle, ExternalLink, CheckCircle2, Square,
 } from 'lucide-react';
 import { ModelPicker } from '@/components/model-picker';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { BorderBeam } from '@/components/ui/border-beam';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -172,10 +174,16 @@ export function CvStudioDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl flex flex-col max-h-[90vh]">
+      <DialogContent className="max-w-2xl flex flex-col max-h-[90vh] relative overflow-hidden">
+        {(stage === 'tailoring' || stage === 'rendering' || stage === 'pdf') && (
+          <BorderBeam size={180} duration={5} />
+        )}
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileDown className="h-5 w-5 text-primary" />
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-primary/30 to-brand-violet/30 ring-1 ring-inset ring-primary/30">
+              <FileDown className="h-3.5 w-3.5 text-primary" />
+            </span>
             CV Studio — tailored for this role
           </DialogTitle>
           <DialogDescription>
@@ -337,9 +345,9 @@ export function CvStudioDialog({
               <Square className="h-4 w-4" /> Stop
             </Button>
           ) : (
-            <Button onClick={start} disabled={!modelId || jdText.trim().length < 40} className="gap-1.5">
-              {stage === 'done' ? <><Sparkles className="h-4 w-4" /> Re-generate</> : <><FileDown className="h-4 w-4" /> Generate tailored CV</>}
-            </Button>
+            <ShimmerButton onClick={start} disabled={!modelId || jdText.trim().length < 40}>
+              {stage === 'done' ? <><Sparkles className="h-3.5 w-3.5" /> Re-generate</> : <><FileDown className="h-3.5 w-3.5" /> Generate tailored CV</>}
+            </ShimmerButton>
           )}
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="ml-auto">Close</Button>
         </DialogFooter>

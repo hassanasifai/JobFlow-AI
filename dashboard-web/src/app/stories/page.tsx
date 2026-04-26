@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Library, AlertTriangle, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownView } from '@/components/markdown-view';
+import { PageHeader } from '@/components/ui/page-header';
 
 const STORY_BANK_PATH = 'interview-prep/story-bank.md';
 
@@ -57,20 +58,17 @@ export default function StoriesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Library className="h-6 w-6 text-primary" /> Story bank
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Your STAR+R interview stories. The original career-ops accumulates these across evaluations.
-          </p>
-        </div>
-        <Button onClick={() => save.mutate()} disabled={save.isPending} className="gap-1.5">
-          {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save
-        </Button>
-      </div>
+      <PageHeader
+        icon={Library}
+        title="Story bank"
+        description="Your STAR+R interview stories. JobFlow AI accumulates these across evaluations."
+        actions={
+          <Button onClick={() => save.mutate()} disabled={save.isPending} className="gap-1.5">
+            {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save
+          </Button>
+        }
+      />
 
       {error && (
         <Alert variant="destructive">

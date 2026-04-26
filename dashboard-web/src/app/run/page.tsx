@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Terminal, Play, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * Command runner — surfaces every entry of the existing /api/command catalog
@@ -41,14 +42,11 @@ export default function RunPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Terminal className="h-6 w-6 text-primary" /> Commands
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Run any of the existing CLI scripts (verify, dedup, merge, normalize, …) with one click.
-        </p>
-      </div>
+      <PageHeader
+        icon={Terminal}
+        title="Commands"
+        description="Run any of the existing CLI scripts (verify, dedup, merge, normalize, …) with one click."
+      />
 
       {overview.error && (
         <Alert variant="destructive">

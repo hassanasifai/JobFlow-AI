@@ -140,10 +140,13 @@ export function ApplyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl flex flex-col max-h-[90vh]">
+      <DialogContent className="max-w-xl flex flex-col max-h-[90vh] relative overflow-hidden">
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Send className="h-5 w-5 text-primary" />
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-primary/30 to-brand-violet/30 ring-1 ring-inset ring-primary/30">
+              <Send className="h-3.5 w-3.5 text-primary" />
+            </span>
             Apply to this role
           </DialogTitle>
           <DialogDescription>

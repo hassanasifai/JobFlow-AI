@@ -14,6 +14,7 @@ import { ApplicationsBoard } from '@/components/applications-board';
 import { ApplicationsTable } from '@/components/applications-table';
 import { STATUS_OPTIONS, STATUS_COLOR } from '@/lib/states';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function ApplicationsPage() {
   const overview = useQuery({ queryKey: ['overview'], queryFn: api.overview, refetchInterval: 60_000 });
@@ -33,22 +34,19 @@ export default function ApplicationsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <ClipboardList className="h-6 w-6 text-primary" /> Applications
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Track every role you&apos;ve evaluated. Drag-and-drop between columns or change status inline.
-          </p>
-        </div>
-        <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'table')}>
-          <TabsList>
-            <TabsTrigger value="kanban" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" /> Kanban</TabsTrigger>
-            <TabsTrigger value="table" className="gap-1.5"><Rows3 className="h-3.5 w-3.5" /> Table</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title="Applications"
+        description="Track every role you've evaluated. Drag-and-drop between columns or change status inline."
+        actions={
+          <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'table')}>
+            <TabsList>
+              <TabsTrigger value="kanban" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" /> Kanban</TabsTrigger>
+              <TabsTrigger value="table" className="gap-1.5"><Rows3 className="h-3.5 w-3.5" /> Table</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
+      />
 
       {overview.error && (
         <Alert variant="destructive">

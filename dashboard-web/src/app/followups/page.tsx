@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Bell, AlertTriangle, Loader2, RefreshCcw } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * Follow-up cadence — surfaces `followup-cadence.mjs --summary` JSON output
@@ -24,20 +25,17 @@ export default function FollowupsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Bell className="h-6 w-6 text-primary" /> Follow-ups
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Applications with suggested next-action dates based on time-since-applied + status.
-          </p>
-        </div>
-        <Button onClick={() => run.mutate()} disabled={run.isPending} variant="outline" className="gap-1.5">
-          {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        icon={Bell}
+        title="Follow-ups"
+        description="Applications with suggested next-action dates based on time-since-applied + status."
+        actions={
+          <Button onClick={() => run.mutate()} disabled={run.isPending} variant="outline" className="gap-1.5">
+            {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+            Refresh
+          </Button>
+        }
+      />
 
       {run.error && (
         <Alert variant="destructive">

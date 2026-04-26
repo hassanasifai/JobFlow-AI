@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, ChartLine } from 'lucide-react';
 import { STATUS_COLOR } from '@/lib/states';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * Analytics page (Phase L9) — rendered from the existing applications/jobs
@@ -23,14 +24,11 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <ChartLine className="h-6 w-6 text-primary" /> Analytics
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Application funnel, conversion rates, time-in-stage. Computed from your applications tracker.
-        </p>
-      </div>
+      <PageHeader
+        icon={ChartLine}
+        title="Analytics"
+        description="Application funnel, conversion rates, time-in-stage. Computed from your applications tracker."
+      />
 
       {overview.isLoading && <Skeleton className="h-40 w-full" />}
 

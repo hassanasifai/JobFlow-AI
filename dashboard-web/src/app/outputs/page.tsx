@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FileDown, Search, AlertTriangle, ExternalLink } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function OutputsPage() {
   const overview = useQuery({ queryKey: ['overview'], queryFn: api.overview });
@@ -22,14 +23,13 @@ export default function OutputsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <FileDown className="h-6 w-6 text-primary" /> Outputs
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Generated PDFs and tailored CVs under <code className="text-xs px-1 rounded bg-muted">output/</code>.
-        </p>
-      </div>
+      <PageHeader
+        icon={FileDown}
+        title="Outputs"
+        description={
+          <>Generated PDFs and tailored CVs under <code className="text-xs px-1 rounded bg-muted">output/</code>.</>
+        }
+      />
 
       {overview.error && (
         <Alert variant="destructive">

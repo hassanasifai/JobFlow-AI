@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { CommandPaletteProvider } from '@/components/ui/command-palette';
 import { useState } from 'react';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -20,11 +21,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }),
   );
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <QueryClientProvider client={client}>
         <TooltipProvider delayDuration={200}>
-          {children}
-          <Toaster richColors position="top-right" />
+          <CommandPaletteProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </CommandPaletteProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>

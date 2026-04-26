@@ -14,6 +14,7 @@ import { Loader2, MessageCircle, Sparkles, AlertTriangle, Square } from 'lucide-
 import { ModelPicker } from '@/components/model-picker';
 import { MarkdownView } from '@/components/markdown-view';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * Per-application interview prep — surfaces modes/interview-prep.md. The
@@ -80,14 +81,11 @@ export default function InterviewPrepPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <MessageCircle className="h-6 w-6 text-primary" /> Interview prep
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Per-company / per-role intelligence. modes/interview-prep.md generates STAR+R stories tailored to the role, common questions, and behavioral prep.
-        </p>
-      </div>
+      <PageHeader
+        icon={MessageCircle}
+        title="Interview prep"
+        description="Per-company / per-role intelligence. modes/interview-prep.md generates STAR+R stories tailored to the role, common questions, and behavioral prep."
+      />
 
       {interviewApps.length > 0 && !company && (
         <Card>
