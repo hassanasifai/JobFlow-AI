@@ -20,7 +20,7 @@ jobs:
         # action fails on every public-repo PR. Once enabled, drop this line so
         # high-severity vulnerabilities actually block merges.
         continue-on-error: true
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           # Block PRs that introduce high or critical severity vulnerabilities.
           # Use 'moderate' if the project is highly security-sensitive.
